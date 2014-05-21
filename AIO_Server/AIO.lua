@@ -112,6 +112,8 @@ AIO =
     Objects = {},
     -- Stores long messages for players
     LongMessages = {},
+    -- Counter for nameless objects (used for naming)
+    NamelessCount = 0,
 }
 
 AIO.SERVER = GetLuaEngine ~= nil
@@ -210,7 +212,7 @@ function table.fromstring( str )
 end
 
 -- Returns true if var is an Object table
-function AIO:IsFrame(var)
+function AIO:IsObject(var)
     if(type(var) ~= "table") then
         return false
     end
@@ -265,8 +267,8 @@ function AIO:ToFunction(FuncAsString, RetRealFunc)
 end
 -- Converts frame or frame name to frame object parameter
 function AIO:ToFrame(FrameOrFrameName)
-    assert(type(FrameOrFrameName) == "string" or type(FrameOrFrameName) == "table")
-    if (AIO:IsFrame(FrameOrFrameName)) then
+    assert(type(FrameOrFrameName) == "string" or AIO:IsFrame(FrameOrFrameName))
+    if (type(FrameOrFrameName) == "table") then
         FrameOrFrameName = FrameOrFrameName:GetName()
     end
     return AIO.Indentifier..AIO.Frame..AIO:ToByte(FrameOrFrameName)
@@ -300,9 +302,12 @@ function AIO:ToNil()
     return AIO.Indentifier..AIO.Nil
 end
 -- Returns global variable parameter
-function AIO:ToGlobal(GlobalVarName)
-    assert(type(val) == "string")
-    return AIO.Indentifier..AIO.Global..GlobalVarName
+function AIO:ToGlobal(ObjectOrVarName)
+    assert(type(ObjectOrVarName) == "string" or AIO:IsObject(ObjectOrVarName))
+    if (type(ObjectOrVarName) == "table") then
+        ObjectOrVarName = ObjectOrVarName:GetName()
+    end
+    return AIO.Indentifier..AIO.Global..AIO:ToByte(ObjectOrVarName)
 end
 
 -- Converts a value to string using special characters to represent the value if needed
@@ -325,6 +330,9 @@ function AIO:ToMsgVal(val)
     elseif (Type == "table") then
         if (AIO:IsFrame(val)) then
             return AIO:ToFrame(val:GetName())
+        end
+        if (AIO:IsObject(val)) then
+            return AIO:ToGlobal(val:GetName())
         end
         return AIO:ToTable(val)
     else
@@ -366,7 +374,7 @@ function AIO:ToRealVal(val)
         elseif(val:find(AIO.Table) == 1) then
             return table.fromstring(val:sub(2))
         elseif(val:find(AIO.Global) == 1) then
-            return _G[val:sub(2)]
+            return _G[AIO:FromByte(val:sub(2))]
         end
     end
     return val

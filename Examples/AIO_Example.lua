@@ -72,17 +72,26 @@ Slider:AddBlock("Method", Slider:GetName() .."Low", "Hide")
 Slider:Show()
 
 -- Creating a child, a button:
-local Button = AIO:CreateFrame("Button", "ButtonTest", Frame, "UIPanelButtonTemplate")
-Button:SetText("Test")
+local Button = AIO:CreateFrame("Button", "ButtonTest", Frame)
 Button:SetSize(100, 30)
 Button:SetPoint("CENTER", Frame, "CENTER")
 Button:SetEnabledMouse(true)
 -- Small script to clear the focus from input on click
 Button:SetScript("OnMouseUp", AIO:ToFunction("_G.InputTest:ClearFocus()"))
-Button:SetVar("tooltipText", 'This is the Tooltip hint')
+-- Usually I use UIPanelButtonTemplate for buttons, but I wanted to show and test some custom color texture here:
+local texture = Button:CreateTexture("TextureTest")
+texture:SetAllPoints(Button)
+texture:SetTexture(0.5, 1, 1, 0.5)
+Button:SetNormalTexture(texture)
+-- Set the font, could use GameFontNormal template, but I wanted to create my own
+local fontstring = Button:CreateFontString("FontTest")
+fontstring:SetFont("Fonts\\FRIZQT__.TTF", 11, "OUTLINE, MONOCHROME")
+fontstring:SetShadowOffset(1, -1)
+Button:SetFontString(fontstring)
+Button:SetText("Test")
 
 -- Making a server side function to trigger on button click
--- Using AIO:FrameDo(...) to get some data from server elements
+-- Using AIO:ObjDo(...) to get some data from server elements
 local function OnClickButton(Player, Event, EventParamsTable, ClientFuncRet)
     -- Prints the returned data
     print(AIO.unpack(ClientFuncRet))
@@ -92,7 +101,7 @@ end
 -- SetScript accepts the Event, ServerFunc, FuncStr. The FuncStr is a string that is executed on server side.
 -- FuncStr is not a function, it is the content of a function and all return values will be passed to ClientFuncRet table for the ServerFunc,
 -- in this case OnClickButton(Player, Event, EventParamsTable, ClientFuncRet)
-Button:SetScript("OnClick", OnClickButton, AIO:FrameDo(Input, ":GetText()", Slider, ":GetValue()"))
+Button:SetScript("OnClick", OnClickButton, AIO:ObjDo(Input, ":GetText()", Slider, ":GetValue()"))
 
 -- At this stage nothing is sent to the client yet. All done is server side.
 -- You have just made a bunch of strings containing what to do.

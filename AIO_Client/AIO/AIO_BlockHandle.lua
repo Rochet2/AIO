@@ -82,7 +82,7 @@ function BlockHandle.Method(Player, Frame, FuncName, ...)
     elseif(Frame[FuncName]) then
         Frame[FuncName](Frame, ...)
     else
-        error("Nonexisting Frame method ("..FuncName..") for type ("..Frame..")")
+        error("Nonexisting Frame method ("..FuncName..") for type ("..Frame:GetObjectType()..")")
     end
 end
 

@@ -381,7 +381,7 @@ local ObjectTypes =
             -- "IsEnabled",
             "LockHighlight",
             "RegisterForClicks",
-            "SetFont",
+            -- "SetFont", -- Apparently SetFont is not a button method
             "SetFormattedText",
             "UnlockHighlight",
         },
@@ -794,9 +794,9 @@ local ObjectTypes =
             "LayeredRegion",
         },
         GetSet_Methods = {
-            "GetBlendMode",
-            "GetTexCoord",
-            "GetTexture",
+            "BlendMode",
+            "TexCoord",
+            "Texture",
             "Desaturated",
         },
         Methods = {
@@ -866,9 +866,14 @@ end
 -- Creates a new object of given type
 -- Used by CreateFrame etc functions to create the base object with needed methods
 function AIO:CreateObject(Type, Name, Parent)
-    assert(Type or Name)
+    assert(Type)
+    if(not Name) then
+        -- Nameless, create a name from prefix_NamelessTypeCount
+        AIO.NamelessCount = AIO.NamelessCount + 1
+        Name = AIO.Prefix.."_".."Nameless"..Type..AIO.NamelessCount
+    end
     if(AIO.Objects[Name]) then
-        print("Warning, overwrote object "..Type.." "..Name)
+        error("Warning, overwrote object "..Type.." "..Name..", should probably NOT use same name objects!")
     end
     
     local Object = {}
@@ -962,8 +967,10 @@ function AIO.Object:Clear(SelfOnly)
     if (SelfOnly) then
         return
     end
-    for k, child in ipairs(self.Children) do
-        child:Clear()
+    if (self.Children) then
+        for k, child in ipairs(self.Children) do
+            child:Clear()
+        end
     end
 end
     
@@ -1193,12 +1200,12 @@ function MethodHandle.HasScript(self, Event, ...)
     return AIO.unpack(self.Scripts[Event], 1, AIO.maxn(self.Scripts[Event])) ~= nil
 end
 
--- Creates function content as string that returns values IN ORDER from given function executed on frames or frame names passed
--- FrameDo accepts a frame (or name) and a string. Every other passed argument is a frame and every other is a string.
--- The string is a function or variable etc that you want to do with for the frame. Can be blank string AIO:FrameDo(Frame, "")
--- Example: AIO:FrameDo(Frame, ":GetText()") Results into: " return _G['FrameName']:GetText() "
--- The string can have a function and arguments etc, example AIO:FrameDo(Frame, ":GetAttribute(prefix, name, suffix)")
--- You can also access variables with using dot . example: AIO:FrameDo(Frame, ".Var")
+-- Creates function content as string that returns values IN ORDER from given function executed on objects or object names passed
+-- ObjDo accepts an object (or name) and a string. Every other passed argument is an object and every other is a string.
+-- The string is a function or variable etc that you want to do with for the object. Can be blank string AIO:ObjDo(Frame, "")
+-- Example: AIO:ObjDo(Object, ":GetText()") Results into: " return _G['ObjectName']:GetText() "
+-- The string can have a function and arguments etc, example AIO:ObjDo(Frame, ":GetAttribute(prefix, name, suffix)")
+-- You can also access variables with using dot . example: AIO:ObjDo(Object, ".Var")
 -- Usage:
 --[[
 local function ToExec(Player, Event, EventParamsTable, ClientFuncRet)
@@ -1206,18 +1213,19 @@ local function ToExec(Player, Event, EventParamsTable, ClientFuncRet)
         print(v) -- Prints the GetText value from all 4 inputs
     end
 end
-Frame:SetScript("OnClick", ToExec, AIO:FrameDo(Input1, ":GetText()", Input2, ":GetText()", Input3, ":GetText()", "Input4Name", ":GetText()"))
+Frame:SetScript("OnClick", ToExec, AIO:ObjDo(Input1, ":GetText()", Input2, ":GetText()", Input3, ":GetText()", "Input4Name", ":GetText()"))
 ]]
-function AIO:FrameDo(...)
+function AIO:ObjDo(...)
     local params = ""
     for i = 1, select('#',...), 2 do
-        local Frame = select(i, ...)
+        local Obj = select(i, ...)
         local Do = select(i+1, ...)
-        if(AIO:IsFrame(Frame)) then
-            Frame = Frame:GetName()
+        if(AIO:IsObject(Obj)) then
+            Obj = Obj:GetName()
         end
-        if(Frame and Do) then
-            params = params .. ",_G[\""..Frame.."\"]"..Do
+        if(Obj and Do) then
+            Obj = Obj:gsub('"', '\\"')
+            params = params .. ',_G["'..Obj..'"]'..Do
         end
     end
     -- remove the first comma with sub
