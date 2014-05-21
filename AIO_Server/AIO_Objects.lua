@@ -1034,6 +1034,9 @@ function AIO:CreateFrame(Type, Name, Parent, Template)
     return Frame
 end
 
+-- Some methods are special or act a bit differently from others etc
+-- They need special coding. Here you can see the functions that have server side code.
+-- See AIO_BlockHandle.lua on client side for client side special method implementations
 function MethodHandle.CreateFontString(self, name, layer, template, ...)
     local fontstr = AIO:CreateObject("FontString", name, self)
     fontstr:SetData("DrawLayer", layer)

@@ -136,7 +136,7 @@ AIO.Function        = 'l'
 AIO.String          = 'm'
 AIO.Number          = 'n'
 AIO.Global          = 'o'
-AIO.Indentifier     = '&'
+AIO.Identifier      = '&'
 AIO.Prefix = AIO.Prefix:sub(1, 16) -- shorten prefix to max allowed
 AIO.MsgLen = 255 -1 -AIO.Prefix:len() -AIO.ShortMsg:len() -- remove \t, prefix
 AIO.LongMsgLen = 255 -1 -AIO.Prefix:len() -AIO.LongMsg:len() -AIO.LongMsgEnd:len() -- remove \t, prefix, long tag, long end tag
@@ -167,25 +167,20 @@ end
 -- Heavily modified ..
 local function val_to_str ( v )
     local v = AIO:ToMsgVal(v)
-    if(v:find(AIO.Table) == 1) then
-        return v:sub(2)
+    if(v:find(AIO.Identifier..AIO.Table) == 1) then
+        return v:sub(3)
     end
     return '"'..v..'"'
 end
 function table.tostring( tbl )
     assert(type(tbl) == "table")
-    local result, done = {}, {}
-    for k, v in ipairs( tbl ) do
-        table.insert( result, val_to_str( v ) )
-        done[ k ] = true
-    end
+    local result = {}
     for k, v in pairs( tbl ) do
-        if not done[ k ] then
-            table.insert( result, "[" .. val_to_str( k ) .. "]" .. "=" .. val_to_str( v ) )
-        end
+        table.insert( result, "[" .. val_to_str( k ) .. "]" .. "=" .. val_to_str( v ) )
     end
     return "{" .. table.concat( result, "," ) .. "}"
 end
+
 local function table_to_real( t )
     local res = {}
     for k,v in pairs(t or {}) do
@@ -200,12 +195,22 @@ local function table_to_real( t )
         else
             _v = AIO:ToRealVal(v)
         end
-        res[_k] = _v
+        if(type(_k) ~= nil) then
+            res[_k] = _v
+        end
     end
     return res
 end
+
 function table.fromstring( str )
     assert(type(str) == "string")
+    -- Some security
+    if (str:find("[^{},%[%]%a%d \"=]") or
+        str:find("%a%a") or
+        str:find('[^"]%a') or
+        not str:find("{.*}")) then
+        return nil
+    end
     local func, err = AIO.loadstring("return "..str)
     assert(func, err)
     return table_to_real(func())
@@ -263,7 +268,7 @@ end
 -- If RetRealFunc is true, when the string is executed, it returns the function to actually use as function
 function AIO:ToFunction(FuncAsString, RetRealFunc)
     assert(type(FuncAsString) == "string")
-    return AIO.Indentifier..AIO.Function..(RetRealFunc and 1 or 0)..AIO:ToByte(FuncAsString)
+    return AIO.Identifier..AIO.Function..(RetRealFunc and 1 or 0)..AIO:ToByte(FuncAsString)
 end
 -- Converts frame or frame name to frame object parameter
 function AIO:ToFrame(FrameOrFrameName)
@@ -271,35 +276,35 @@ function AIO:ToFrame(FrameOrFrameName)
     if (type(FrameOrFrameName) == "table") then
         FrameOrFrameName = FrameOrFrameName:GetName()
     end
-    return AIO.Indentifier..AIO.Frame..AIO:ToByte(FrameOrFrameName)
+    return AIO.Identifier..AIO.Frame..AIO:ToByte(FrameOrFrameName)
 end
 -- Converts table to parameter
 function AIO:ToTable(tbl)
     assert(type(tbl) == "table")
-    return AIO.Indentifier..AIO.Table..table.tostring(tbl)
+    return AIO.Identifier..AIO.Table..table.tostring(tbl)
 end
 -- Returns string parameter
 function AIO:ToString(val)
     assert(type(val) == "string")
-    return AIO.Indentifier..AIO.String..AIO:ToByte(val)
+    return AIO.Identifier..AIO.String..AIO:ToByte(val)
 end
 -- Returns number parameter
 function AIO:ToNumber(val)
     val = tonumber(val)
     assert(val)
-    return AIO.Indentifier..AIO.Number..val
+    return AIO.Identifier..AIO.Number..val
 end
 -- Converts boolean to parameter
 function AIO:ToBoolean(bool)
     if (bool) then
-        return AIO.Indentifier..AIO.True
+        return AIO.Identifier..AIO.True
     else
-        return AIO.Indentifier..AIO.False
+        return AIO.Identifier..AIO.False
     end
 end
 -- Returns nil parameter
 function AIO:ToNil()
-    return AIO.Indentifier..AIO.Nil
+    return AIO.Identifier..AIO.Nil
 end
 -- Returns global variable parameter
 function AIO:ToGlobal(ObjectOrVarName)
@@ -307,14 +312,14 @@ function AIO:ToGlobal(ObjectOrVarName)
     if (type(ObjectOrVarName) == "table") then
         ObjectOrVarName = ObjectOrVarName:GetName()
     end
-    return AIO.Indentifier..AIO.Global..AIO:ToByte(ObjectOrVarName)
+    return AIO.Identifier..AIO.Global..AIO:ToByte(ObjectOrVarName)
 end
 
 -- Converts a value to string using special characters to represent the value if needed
 function AIO:ToMsgVal(val)
     local Type = type(val)
     if (Type == "string") then
-        if(val:find(AIO.Indentifier) == 1) then
+        if(val:find(AIO.Identifier) == 1) then
             return val
         else
             return AIO:ToString(val)
@@ -471,7 +476,7 @@ end
 function AIO:Send(msg, player, ...)
     assert(msg, "Trying to send a nonexistant message")
     
-    msg = msg:gsub(AIO.Indentifier, "")
+    msg = msg:gsub(AIO.Identifier, "")
     
     -- More than one receiver, mass send message
     if(...) then
