@@ -850,15 +850,15 @@ do
         Methods = {
         },
     }
-    for k,v in ipairs(Inherits) do
+    for k,v in pairs(Inherits) do
         table.insert(Dummy.Inherits, k)
     end
-    for k,v in ipairs(GetSet_Methods) do
-        table.insert(Dummy.GetSet_Methods, k)
-    end
-    for k,v in ipairs(Methods) do
-        table.insert(Dummy.Methods, k)
-    end
+    -- for k,v in pairs(GetSet_Methods) do
+    --     table.insert(Dummy.GetSet_Methods, k)
+    -- end
+    -- for k,v in pairs(Methods) do
+    --     table.insert(Dummy.Methods, k)
+    -- end
     ObjectTypes["Dummy"] = Dummy
 end
 
@@ -1172,29 +1172,45 @@ end
 -- The return value(s) of the ClientFunc is added to ClientFuncRet table parameter for the Func executed server side
 -- Func arguments will then be (Player, Event, EventParamsTable, ClientFuncRet)
 function MethodHandle.SetScript(self, Event, Func, ClientFunc, ...)
-    self.Scripts[Event] = {Func, ClientFunc, ...}
-    if(type(Func) == "function") then
+    assert(AIO:IsFrame(self), "self not frame")
+    assert(type(Event) == "string", "Event not string")
+    local ftype = type(Func)
+    if(ftype == "function") then
         -- Was server side executable function
-        local callback = AIO:ToFunction("local function CliFunc(...) "..ClientFunc.." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
+        local callback = AIO:ToFunction("local function CliFunc(...) "..(ClientFunc or "").." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
         self:AddBlock("Method", self:GetName(), "SetScript", Event, callback)
-    else
+    elseif(ftype == "string") then
         -- Was client side executable function ( func as string with AIO:ToFunction(funcstr) )
         -- Imitate using a method
         self:AddBlock("Method", self:GetName(), "SetScript", Event, Func)
+    elseif(ftype == "nil") then
+        -- Was nil, erase executed function
+        self:AddBlock("Method", self:GetName(), "SetScript", Event, nil)
+    else
+        error("Func was not a string nor a function")
     end
+    self.Scripts[Event] = {Func, ClientFunc, ...}
 end
 -- Same as SetScrpt
 function MethodHandle.HookScript(self, Event, Func, ClientFunc, ...)
-    self.Scripts[Event] = {Func, ClientFunc, ...}
-    if(type(Func) == "function") then
+    assert(AIO:IsFrame(self), "self not frame")
+    assert(type(Event) == "string", "Event not string")
+    local ftype = type(Func)
+    if(ftype == "function") then
         -- Was server side executable function
-        local callback = AIO:ToFunction("local function CliFunc(...) "..ClientFunc.." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
+        local callback = AIO:ToFunction("local function CliFunc(...) "..(ClientFunc or "").." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
         self:AddBlock("Method", self:GetName(), "HookScript", Event, callback)
-    else
+    elseif(ftype == "string") then
         -- Was client side executable function ( func as string with AIO:ToFunction(funcstr) )
         -- Imitate using a method
         self:AddBlock("Method", self:GetName(), "HookScript", Event, Func)
+    elseif(ftype == "nil") then
+        -- Was nil, erase executed function
+        self:AddBlock("Method", self:GetName(), "HookScript", Event, nil)
+    else
+        error("Func was not a string nor a function")
     end
+    self.Scripts[Event] = {Func, ClientFunc, ...}
 end
 function MethodHandle.GetScript(self, Event, ...)
     return AIO.unpack(self.Scripts[Event], 1, AIO.maxn(self.Scripts[Event]))

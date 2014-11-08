@@ -149,14 +149,14 @@ AIO.maxn = table.maxn or function(t) local n for k, _ in pairs(t) do n = k end r
 -- Merges t2 to t1 (tables)
 function AIO:TableMerge(t1, t2)
     for k,v in pairs(t2) do
-    	if (type(v) == "table") then
+        if (type(v) == "table") then
             if(type(t1[k]) ~= "table") then
                 t1[k] = {}
             end
             AIO:TableMerge(t1[k], t2[k])
         else
             t1[k] = v
-    	end
+        end
     end
     return t1
 end
@@ -500,10 +500,10 @@ end
 -- Messages can be 255 characters long, so big messages will be split
 function AIO:HandleIncomingMsg(msg, player)
     -- Received a long message part (msg split into 255 character parts)
-	if (msg:find(AIO.LongMsg)) == 1 then
+    if (msg:find(AIO.LongMsg)) == 1 then
         local guid = AIO.SERVER and player:GetGUIDLow() or 1
-		if (msg:find(AIO.LongMsgEnd)) == 2 then
-			if (not AIO.LongMessages[guid]) then
+        if (msg:find(AIO.LongMsgEnd)) == 2 then
+            if (not AIO.LongMessages[guid]) then
                 -- Dont error when client sends bad data
                 if (AIO.SERVER) then
                     AIO.LongMessages[guid] = nil
@@ -512,18 +512,18 @@ function AIO:HandleIncomingMsg(msg, player)
                     error("Received long message end tag even if there has been no long message")
                 end
             end
-			AIO:ParseBlocks(AIO.LongMessages[guid]..msg:sub(3), player)
-			AIO.LongMessages[guid] = nil
-		else
-			if (not AIO.LongMessages[guid]) then
+            AIO:ParseBlocks(AIO.LongMessages[guid]..msg:sub(3), player)
+            AIO.LongMessages[guid] = nil
+        else
+            if (not AIO.LongMessages[guid]) then
                 AIO.LongMessages[guid] = ""
             end
-			AIO.LongMessages[guid] = AIO.LongMessages[guid]..msg:sub(2)
-		end
+            AIO.LongMessages[guid] = AIO.LongMessages[guid]..msg:sub(2)
+        end
     elseif (msg:find(AIO.ShortMsg) == 1) then
         -- Received <= 255 char msg, direct parse
         AIO:ParseBlocks(msg:sub(2), player)
-	end
+    end
 end
 
 -- Extracts blocks from msg to a table that has block data in a table
