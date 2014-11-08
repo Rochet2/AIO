@@ -1,8 +1,5 @@
 require("AIO")
 
---[[ Testmenu written by NotHawthorne and Kaev for Shard of Entropy ]]--
-
-local function create_objects(event, player)
     -- Frame
     local Frame = AIO:CreateFrame("Frame", "FrameTest", "UIParent", nil)
     Frame:SetSize(42, 179)
@@ -88,16 +85,23 @@ local function create_objects(event, player)
     TestButton4:SetPushedTexture("Interface/Buttons/CheckButtonHilight")
     -- Buttons end
 
-    -- Send Frame
+    -- FrameUI
     local FrameUI = AIO:CreateMsg()
     FrameUI:Append(Frame)
+    -- FrameUI End
+
+    -- Frame Children FrameUI
+    local TrainingFrameUI = AIO:CreateMsg()
+    TrainingFrameUI:Append(TrainingFrame)
+    -- 
+
+local function create_objects(event, player)
+    -- Send Frame
     Frame:Send(player)
     Frame:Clear()
     -- Send Frame End
 
     -- Send Frame Children
-    local TrainingFrameUI = AIO:CreateMsg()
-    TrainingFrameUI:Append(TrainingFrame)
     TrainingFrame:Send(player)
     TrainingFrame:Clear()
     -- Send Frame Children End
