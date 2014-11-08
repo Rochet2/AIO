@@ -93,9 +93,15 @@ require("AIO")
     -- Frame Children FrameUI
     local TrainingFrameUI = AIO:CreateMsg()
     TrainingFrameUI:Append(TrainingFrame)
-    -- 
+    -- Frame Children FrameUI End
 
 local function create_objects(event, player)
+
+    -- You need this to send it to the player again, e.g. when he relogs
+    FrameUI:SendIgnoreIf(Frame, player)
+    TrainingFrameUI:SendIgnoreIf(TrainingFrame, player)
+    -- Send after relog End
+
     -- Send Frame
     Frame:Send(player)
     Frame:Clear()
