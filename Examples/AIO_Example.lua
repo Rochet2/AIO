@@ -16,7 +16,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ]]
 
-require("AIO")
+local AIO = require("AIO")
 
 -- First create the frames and set up the codes for them..
 -- Notice the similarity to Addon API

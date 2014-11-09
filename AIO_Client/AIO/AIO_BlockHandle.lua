@@ -16,6 +16,11 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ]]
 
+local AIO = AIO
+
+local type = type
+local _G = _G
+
 -- http://www.wowwiki.com/Widget_handlers
 -- http://www.wowwiki.com/Widget_API
 
@@ -38,6 +43,7 @@ function AIO:HandleBlock(block, Player)
     -- for k, block in ipairs(Blocks) do
         local HandleName = block[1]
         if(BlockHandle[HandleName]) then
+            -- Using of maxn is important instead of # operator since the table contains holes (nil mixed in) and # will then possibly return invalid length
             BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
         else
             error("Unknown blockhandle "..HandleName)

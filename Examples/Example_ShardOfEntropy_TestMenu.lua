@@ -3,7 +3,7 @@
 
 -- Notice that the objects are not named
 
-require("AIO")
+local AIO = require("AIO")
 
 -- Frame
 local Frame = AIO:CreateFrame("Frame", nil, "UIParent", nil)

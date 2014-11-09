@@ -19,7 +19,11 @@
 -- http://www.wowwiki.com/Widget_handlers
 -- http://www.wowwiki.com/Widget_API
 
-require("AIO")
+local AIO = require("AIO")
+
+local assert = assert
+local ipairs = ipairs
+local type = type
 
 -- Check if loaded
 -- Try to avoid multiple loads with require etc
