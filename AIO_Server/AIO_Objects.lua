@@ -1023,7 +1023,7 @@ end
 
 -- Creates a new Frame object and sets all methods and variables for it
 function AIO:CreateFrame(Type, Name, Parent, Template)
-    assert(Type and Name)
+    assert(Type)
     assert(ObjectTypes[Type], "Invalid frame type"..Type)
     
     -- Frame can probably only have a frame parent
