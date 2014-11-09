@@ -886,7 +886,7 @@ function AIO:CreateObject(Type, Name, Parent)
     if(not Name) then
         -- Nameless, create a name from prefix_NamelessTypeCount
         AIO.NamelessCount = AIO.NamelessCount + 1
-        Name = AIO.Prefix.."_".."Nameless"..Type..AIO.NamelessCount
+        Name = AIO.Prefix.."_"..Type.."_"..AIO.NamelessCount
     end
     if(AIO.Objects[Name]) then
         error("Warning, overwrote object "..Type.." "..Name..", should probably NOT use same name objects!")

@@ -125,7 +125,7 @@ AIO =
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.3
+AIO.Version = 0.4
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
@@ -147,8 +147,10 @@ AIO.Number          = 'n'
 AIO.Global          = 'o'
 AIO.Identifier      = '&'
 AIO.Prefix = AIO.Prefix:sub(1, 16) -- shorten prefix to max allowed if needed
-AIO.MsgLen = 255 -1 -AIO.Prefix:len() -AIO.ShortMsg:len() -- remove \t, prefix, msg type indentifier
-AIO.LongMsgLen = 255 -1 -AIO.Prefix:len() -AIO.LongMsg:len() -- remove \t, prefix, msg type indentifier
+AIO.ServerPrefix = ("S"..AIO.Prefix):sub(1, 16)
+AIO.ClientPrefix = ("C"..AIO.Prefix):sub(1, 16)
+AIO.MsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -AIO.ShortMsg:len() -- remove \t, prefix, msg type indentifier
+AIO.LongMsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -AIO.LongMsg:len() -- remove \t, prefix, msg type indentifier
 
 -- premature optimization ftw
 local type = type
@@ -484,11 +486,11 @@ function AIO:SendAddonMessage(msg, player)
     if(AIO.SERVER) then
         -- server -> client
         if(player) then
-            player:SendAddonMessage(AIO.Prefix, msg, 7, player)
+            player:SendAddonMessage(AIO.ServerPrefix, msg, 7, player)
         end
     else
         -- client -> server
-        SendAddonMessage(AIO.Prefix, msg, "WHISPER", UnitName("player"))
+        SendAddonMessage(AIO.ClientPrefix, msg, "WHISPER", UnitName("player"))
     end
 end
 
@@ -597,7 +599,7 @@ end
 if(AIO.SERVER) then
     -- If serverscript
     local function ONADDONMSG(event, sender, Type, prefix, msg, target)
-        if(prefix == AIO.Prefix and tostring(sender) == tostring(target)) then
+        if(prefix == AIO.ClientPrefix and tostring(sender) == tostring(target)) then
             AIO:HandleIncomingMsg(msg, sender)
         end
     end
@@ -617,7 +619,7 @@ else
     initmsg:AddBlock("Init")
     
     local function ONADDONMSG(self, event, prefix, msg, Type, sender)
-        if (prefix == AIO.Prefix) then
+        if (prefix == AIO.ServerPrefix) then
             if(event == "CHAT_MSG_ADDON" and sender == UnitName("player")) then
                 -- Normal AIO message handling from addon messages
                 AIO:HandleIncomingMsg(msg, sender)
