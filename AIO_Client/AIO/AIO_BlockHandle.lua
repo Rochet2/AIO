@@ -60,10 +60,11 @@ function BlockHandle.Function(Player, Func, ...)
     Func(...)
 end
 
-function BlockHandle.Version(Player, version)
+function BlockHandle.Init(Player, version)
     if(AIO.Version ~= version) then
         print("You have AIO version "..AIO.Version.." and server uses "..version..". Get the same version")
     end
+    AIO.INITED = true
 end
 
 -- Table that contains method handler functions for custom frame methods

@@ -30,6 +30,8 @@ msg:AddBlock(Name, ...) -- FuncName, arguments
 msg:Send(...) -- Receiver players, will not be used for client->server messages
 msg:Append(MSG) -- Appends another message to the message
 msg:Clear() -- Deletes the message from the message
+msg:ToString() -- Returns the message (always msg var or "")
+msg:HasMsg() -- returns true or false depending on msg being string or not
 You can code handlers to the receiver end and trigger them with AddBlock
 Example of handler on receiver side:
 function BlockHandle.Print(value)
@@ -114,10 +116,16 @@ AIO =
     LongMessages = {},
     -- Counter for nameless objects (used for naming)
     NamelessCount = 0,
+    -- Server side var of messages (string) to send on initing player UI
+    INIT_MSG = nil,
+    -- Server side table of functions to call on initing player UI
+    INIT_FUNCS = {},
+    -- Client side flag for noting if the client has been inited or not
+    INITED = false,
 }
 
-AIO.SERVER = GetLuaEngine ~= nil
-AIO.Version = 0.1
+AIO.SERVER = type(GetLuaEngine) == "function"
+AIO.Version = 0.2
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
@@ -449,6 +457,14 @@ function AIO.CreateMsg()
         self.MSG = nil
     end
     
+    function msg:ToString()
+        return self.MSG or ""
+    end
+    
+    function msg:HasMsg()
+        return type(self.MSG) == "string"
+    end
+    
     return msg
 end
 
@@ -560,29 +576,52 @@ if(AIO.SERVER) then
             AIO:HandleIncomingMsg(msg, sender)
         end
     end
-    
-    local function ONLOGIN(event, player)
-        local msg = AIO:CreateMsg() -- Create new message
-        msg:AddBlock("Version", AIO.Version)
-        msg:Send(player)
-    end
 
     RegisterServerEvent(30, ONADDONMSG)
-    RegisterPlayerEvent(3, ONLOGIN)
 else
     -- If addonscript
+    
+    -- message to request initialization of UI
+    local initmsg = AIO:CreateMsg()
+    initmsg:AddBlock("Init")
+    
     local function ONADDONMSG(self, event, prefix, msg, Type, sender)
         if (prefix == AIO.Prefix) then
             if(event == "CHAT_MSG_ADDON" and sender == UnitName("player")) then
+                -- Normal AIO message handling from addon messages
                 AIO:HandleIncomingMsg(msg, sender)
             end
+        elseif(event == "PLAYER_LOGIN") then
+            -- Request initialization of UI on player login if not done yet
+            if(AIO.INITED) then
+                return
+            end
+            initmsg:Send()
+        end
+    end
+    
+    -- Request initialization of UI if not done yet
+    -- works by timer for every second. Timer shut down after inited.
+    local reset = 1
+    local timer = reset
+    local function ONUPDATE(self, diff)
+        if(AIO.INITED) then
+            self:SetScript("OnUpdate", nil)
+            return
+        end
+        if (timer < diff) then
+            initmsg:Send()
+            timer = reset
+        else
+            timer = timer - diff
         end
     end
     
     local MsgReceiver = CreateFrame("Frame")
-    MsgReceiver:RegisterEvent("ADDON_LOADED")
+    MsgReceiver:RegisterEvent("PLAYER_LOGIN")
     MsgReceiver:RegisterEvent("CHAT_MSG_ADDON")
     MsgReceiver:SetScript("OnEvent", ONADDONMSG)
+    MsgReceiver:SetScript("OnUpdate", ONUPDATE)
 end
 
 if (AIO.SERVER) then

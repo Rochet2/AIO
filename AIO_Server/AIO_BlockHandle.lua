@@ -65,3 +65,35 @@ function BlockHandle.ServerEvent(Player, Event, EventParamsTable, ClientFuncRet)
     end
     Script(Player, Event, EventParamsTable, ClientFuncRet)
 end
+
+local timers = {}
+local function RemoveInitTimer(eventid, playerguid)
+    if(type(playerguid) == "number") then
+        timers[playerguid] = nil
+    end
+end
+local InitMsg;
+function BlockHandle.Init(Player)
+    if(type(Player) ~= "userdata" or type(Player.GetObjectType) ~= "function" or Player:GetObjectType() ~= "Player") then
+        return
+    end
+    local guid = Player:GetGUIDLow()
+    if (timers[guid]) then
+        return
+    end
+    timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, 4000, 1) -- the timer here (4000) is the min time in ms between inits the player can do
+    if (not InitMsg) then
+        AIO.INIT_MSG = AIO.INIT_MSG or AIO:CreateMsg()
+        AIO.INIT_MSG:AddBlock("Init", AIO.Version)
+        InitMsg = AIO.INIT_MSG
+    end
+    local send = true
+    for k, v in ipairs(AIO.INIT_FUNCS) do
+        if (v(Player) == false) then
+            send = false
+        end
+    end
+    if (send) then
+        InitMsg:Send(Player)
+    end
+end

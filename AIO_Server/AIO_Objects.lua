@@ -862,6 +862,18 @@ do
     ObjectTypes["Dummy"] = Dummy
 end
 
+-- Adds a new msg or frame to an initialization message that is sent to the player when he logs in or when he reloads UI (UI init)
+function AIO:AddInitMsg(msgorframe)
+    AIO.INIT_MSG = AIO.INIT_MSG or AIO:CreateMsg()
+    AIO.INIT_MSG:Append(msgorframe)
+end
+
+-- Adds a new function to be called when the player logs in or when he reloads UI (on UI init)
+-- Argumets passed: func(player)
+function AIO:AddInitFunc(func)
+    assert(type(func) == "function")
+    table.insert(AIO.INIT_FUNCS, func)
+end
 
 -- Creates a new object of given type
 -- Used by CreateFrame etc functions to create the base object with needed methods
