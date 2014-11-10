@@ -96,4 +96,6 @@ AIO:AddInitMsg(Frame)
 AIO:AddInitMsg(TrainingFrame)
 -- This is an example of a function to be called on UI initialization.
 -- See definition and comments of AddInitFunc for more
-AIO:AddInitFunc(print)
+AIO:AddPreInitFunc(print) -- before init UI, can return false to stop init
+-- Sending UI
+AIO:AddPostInitFunc(print) -- after init UI

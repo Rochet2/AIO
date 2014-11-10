@@ -118,14 +118,17 @@ AIO =
     NamelessCount = 0,
     -- Server side var of messages (string) to send on initing player UI
     INIT_MSG = nil,
-    -- Server side table of functions to call on initing player UI
-    INIT_FUNCS = {},
+    -- Server side table of functions to call before initing player UI
+    PRE_INIT_FUNCS = {},
+    -- Server side table of functions to call after initing player UI
+    POST_INIT_FUNCS = {},
     -- Client side flag for noting if the client has been inited or not
+    -- Server side flag for noting when server load operations have been done and they should no longer be done
     INITED = false,
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.4
+AIO.Version = 0.41
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging

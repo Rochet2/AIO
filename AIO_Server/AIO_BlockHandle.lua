@@ -88,17 +88,21 @@ function BlockHandle.Init(Player)
     end
     timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, 4000, 1) -- the timer here (4000) is the min time in ms between inits the player can do
     if (not InitMsg) then
+        AIO.INITED = true
         AIO.INIT_MSG = AIO.INIT_MSG or AIO:CreateMsg()
         AIO.INIT_MSG:AddBlock("Init", AIO.Version)
         InitMsg = AIO.INIT_MSG
     end
     local send = true
-    for k, v in ipairs(AIO.INIT_FUNCS) do
+    for k, v in ipairs(AIO.PRE_INIT_FUNCS) do
         if (v(Player) == false) then
             send = false
         end
     end
     if (send) then
         InitMsg:Send(Player)
+        for k, v in ipairs(AIO.POST_INIT_FUNCS) do
+            v(Player)
+        end
     end
 end

@@ -868,15 +868,27 @@ end
 
 -- Adds a new msg or frame to an initialization message that is sent to the player when he logs in or when he reloads UI (UI init)
 function AIO:AddInitMsg(msgorframe)
+    assert(not AIO.INITED, "You can only use this function on startup")
     AIO.INIT_MSG = AIO.INIT_MSG or AIO:CreateMsg()
     AIO.INIT_MSG:Append(msgorframe)
 end
 
 -- Adds a new function to be called when the player logs in or when he reloads UI (on UI init)
 -- Argumets passed: func(player)
-function AIO:AddInitFunc(func)
+-- Called just before sending UI
+function AIO:AddPreInitFunc(func)
     assert(type(func) == "function")
-    table.insert(AIO.INIT_FUNCS, func)
+    assert(not AIO.INITED, "You can only use this function on startup")
+    table.insert(AIO.PRE_INIT_FUNCS, func)
+end
+
+-- Adds a new function to be called when the player logs in or when he reloads UI (on UI init)
+-- Argumets passed: func(player)
+-- Called just after sending UI
+function AIO:AddPostInitFunc(func)
+    assert(type(func) == "function")
+    assert(not AIO.INITED, "You can only use this function on startup")
+    table.insert(AIO.POST_INIT_FUNCS, func)
 end
 
 -- Creates a new object of given type

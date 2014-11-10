@@ -80,10 +80,12 @@ end
 local MethodHandle = {}
 
 function BlockHandle.Method(Player, Frame, FuncName, ...)
+    local name
     if (type(Frame) == "string") then
+        name = Frame
         Frame = _G[Frame]
     end
-    assert(Frame, "Trying to call method ("..FuncName..") on a nonexistant frame")
+    assert(Frame, "Trying to call method ("..FuncName..") on a nonexistant frame "..(name or "nil"))
     if(MethodHandle[FuncName]) then
         MethodHandle[FuncName](Frame, ...)
     elseif(Frame[FuncName]) then
