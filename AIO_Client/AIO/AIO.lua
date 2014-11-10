@@ -548,7 +548,6 @@ function AIO:HandleIncomingMsg(msg, player)
                 AIO.LongMessages[guid] = nil
                 return
             end
-            print((AIO.LongMessages[guid]..msg:sub(3)):len())
             AIO:ParseBlocks(AIO.LongMessages[guid]..msg:sub(3), player)
             AIO.LongMessages[guid] = nil
         else
