@@ -45,11 +45,8 @@ end
 function AIO:HandleBlock(block, Player)
     -- for k, block in ipairs(Blocks) do
         local HandleName = block[1]
-        if(BlockHandle[HandleName]) then
-            BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
-        else
-            error("Unknown blockhandle "..HandleName)
-        end
+        AIO.assert(BlockHandle[HandleName], "Unknown blockhandle "..HandleName, 1)
+        BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
     -- end
 end
 

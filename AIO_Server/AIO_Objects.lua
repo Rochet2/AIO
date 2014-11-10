@@ -21,7 +21,6 @@
 
 local AIO = require("AIO")
 
-local assert = assert
 local ipairs = ipairs
 local type = type
 
@@ -868,7 +867,7 @@ end
 
 -- Adds a new msg or frame to an initialization message that is sent to the player when he logs in or when he reloads UI (UI init)
 function AIO:AddInitMsg(msgorframe)
-    assert(not AIO.INITED, "You can only use this function on startup")
+    AIO.assert(not AIO.INITED, "You can only use this function on startup", 2)
     AIO.INIT_MSG = AIO.INIT_MSG or AIO:CreateMsg()
     AIO.INIT_MSG:Append(msgorframe)
 end
@@ -877,8 +876,8 @@ end
 -- Argumets passed: func(player)
 -- Called just before sending UI
 function AIO:AddPreInitFunc(func)
-    assert(type(func) == "function")
-    assert(not AIO.INITED, "You can only use this function on startup")
+    AIO.assert(type(func) == "function", "#1 function expected", 2)
+    AIO.assert(not AIO.INITED, "You can only use this function on startup", 2)
     table.insert(AIO.PRE_INIT_FUNCS, func)
 end
 
@@ -886,23 +885,21 @@ end
 -- Argumets passed: func(player)
 -- Called just after sending UI
 function AIO:AddPostInitFunc(func)
-    assert(type(func) == "function")
-    assert(not AIO.INITED, "You can only use this function on startup")
+    AIO.assert(type(func) == "function", "#1 function expected", 2)
+    AIO.assert(not AIO.INITED, "You can only use this function on startup", 2)
     table.insert(AIO.POST_INIT_FUNCS, func)
 end
 
 -- Creates a new object of given type
 -- Used by CreateFrame etc functions to create the base object with needed methods
 function AIO:CreateObject(Type, Name, Parent)
-    assert(Type)
+    AIO.assert(Type, "#1 valid Type expected, got nil", 2)
     if(not Name) then
         -- Nameless, create a name from prefix_NamelessTypeCount
         AIO.NamelessCount = AIO.NamelessCount + 1
         Name = AIO.Prefix.."_"..Type.."_"..AIO.NamelessCount
     end
-    if(AIO.Objects[Name]) then
-        error("Warning, overwrote object "..Type.." "..Name..", should probably NOT use same name objects!")
-    end
+    AIO.assert(not AIO.Objects[Name], "#2 unused Name expected. You are supposed to create an object only once on server side, check your code. Passed Type ("..Type..") name ("..Name..")", 2)
     
     local Object = {}
     AIO.Objects[Name] = Object
@@ -1039,8 +1036,7 @@ end
 
 -- Creates a new Frame object and sets all methods and variables for it
 function AIO:CreateFrame(Type, Name, Parent, Template)
-    assert(Type)
-    assert(ObjectTypes[Type], "Invalid frame type"..Type)
+    AIO.assert(Type and ObjectTypes[Type], "#1 valid frame type expected, got "..(Type or "nil"), 2)
     
     -- Frame can probably only have a frame parent
     if(not AIO:IsFrame(Parent)) then
@@ -1050,7 +1046,7 @@ function AIO:CreateFrame(Type, Name, Parent, Template)
     -- Frames are objects, which are tables with a message and methods that append stuff to it
     local Frame = AIO:CreateObject(Type, Name, Parent)
     -- Check that the created object inherited Frame type!
-    assert(Frame:IsObjectType("Frame"))
+    AIO.assert(Frame:IsObjectType("Frame"), "Created frame did not inherit Frame. Type: "..Type.." Name: "..Frame:GetName(), 2)
     
     Frame.IS_FRAME = true
     Frame.Template = Template
@@ -1200,11 +1196,12 @@ end
 -- The return value(s) of the ClientFunc is added to ClientFuncRet table parameter for the Func executed server side
 -- Func arguments will then be (Player, Event, EventParamsTable, ClientFuncRet)
 function MethodHandle.SetScript(self, Event, Func, ClientFunc, ...)
-    assert(AIO:IsFrame(self), "self not frame")
-    assert(type(Event) == "string", "Event not string")
+    AIO.assert(AIO:IsFrame(self), "self not frame", 2)
+    AIO.assert(type(Event) == "string", "#1 valid event as string expected", 2)
     local ftype = type(Func)
     if(ftype == "function") then
         -- Was server side executable function
+        AIO.assert(not ClientFunc or type(ClientFunc) == "string", "#3 string, nil or false expected", 2)
         local callback = AIO:ToFunction("local function CliFunc(...) "..(ClientFunc or "").." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
         self:AddBlock("Method", self:GetName(), "SetScript", Event, callback)
     elseif(ftype == "string") then
@@ -1215,17 +1212,18 @@ function MethodHandle.SetScript(self, Event, Func, ClientFunc, ...)
         -- Was nil, erase executed function
         self:AddBlock("Method", self:GetName(), "SetScript", Event, nil)
     else
-        error("Func was not a string nor a function")
+        AIO.assert(true, "#2 function or a string expected", 2)
     end
     self.Scripts[Event] = {Func, ClientFunc, ...}
 end
 -- Same as SetScrpt
 function MethodHandle.HookScript(self, Event, Func, ClientFunc, ...)
-    assert(AIO:IsFrame(self), "self not frame")
-    assert(type(Event) == "string", "Event not string")
+    AIO.assert(AIO:IsFrame(self), "self not frame", 2)
+    AIO.assert(type(Event) == "string", "#1 valid event as string expected", 2)
     local ftype = type(Func)
     if(ftype == "function") then
         -- Was server side executable function
+        AIO.assert(not ClientFunc or type(ClientFunc) == "string", "#3 string, nil or false expected", 2)
         local callback = AIO:ToFunction("local function CliFunc(...) "..(ClientFunc or "").." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
         self:AddBlock("Method", self:GetName(), "HookScript", Event, callback)
     elseif(ftype == "string") then
@@ -1236,7 +1234,7 @@ function MethodHandle.HookScript(self, Event, Func, ClientFunc, ...)
         -- Was nil, erase executed function
         self:AddBlock("Method", self:GetName(), "HookScript", Event, nil)
     else
-        error("Func was not a string nor a function")
+        AIO.assert(true, "#2 function or a string expected", 2)
     end
     self.Scripts[Event] = {Func, ClientFunc, ...}
 end

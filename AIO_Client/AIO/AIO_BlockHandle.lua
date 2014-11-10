@@ -19,7 +19,6 @@
 local AIO = AIO
 
 local type = type
-local _G = _G
 
 -- http://www.wowwiki.com/Widget_handlers
 -- http://www.wowwiki.com/Widget_API
@@ -42,12 +41,9 @@ end
 function AIO:HandleBlock(block, Player)
     -- for k, block in ipairs(Blocks) do
         local HandleName = block[1]
-        if(BlockHandle[HandleName]) then
-            -- Using of maxn is important instead of # operator since the table contains holes (nil mixed in) and # will then possibly return invalid length
-            BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
-        else
-            error("Unknown blockhandle "..HandleName)
-        end
+        AIO.assert(BlockHandle[HandleName], "Valid blockhandle name expected, got ("..HandleName..")", 1)
+        -- Using of maxn is important instead of # operator since the table contains holes (nil mixed in) and # will then possibly return invalid length
+        BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
     -- end
 end
 
@@ -67,10 +63,10 @@ function BlockHandle.Function(Player, Func, ...)
 end
 
 function BlockHandle.Init(Player, version)
-    if(AIO.Version ~= version) then
-        print("You have AIO version "..AIO.Version.." and server uses "..version..". Get the same version")
-    end
     AIO.INITED = true
+    if(AIO.Version ~= version) then
+        print("You have AIO version "..AIO.Version.." and the server uses "..version..". Get the same version")
+    end
 end
 
 -- Table that contains method handler functions for custom frame methods
@@ -85,13 +81,13 @@ function BlockHandle.Method(Player, Frame, FuncName, ...)
         name = Frame
         Frame = _G[Frame]
     end
-    assert(Frame, "Trying to call method ("..FuncName..") on a nonexistant frame "..(name or "nil"))
+    AIO.assert(Frame, "#2 Frame name or frame object expected. Calling method ("..FuncName..") on a nonexistant frame "..(name or "nil"), 2)
     if(MethodHandle[FuncName]) then
         MethodHandle[FuncName](Frame, ...)
     elseif(Frame[FuncName]) then
         Frame[FuncName](Frame, ...)
     else
-        error("Nonexisting Frame method ("..FuncName..") for type ("..Frame:GetObjectType()..")")
+        AIO.assert(false, "#3 valid function name expected, got ("..FuncName..") for type ("..Frame:GetObjectType()..")", 1)
     end
 end
 

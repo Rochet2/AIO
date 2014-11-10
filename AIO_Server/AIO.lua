@@ -128,7 +128,7 @@ AIO =
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.45
+AIO.Version = 0.5
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
@@ -158,18 +158,21 @@ AIO.LongMsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()
 
 -- premature optimization ftw
 local type = type
-local assert = assert
 local tostring = tostring
 local tonumber = tonumber
 local pairs = pairs
 local ipairs = ipairs
-local _G = _G
 local AIO = AIO
 
 -- Some lua compatibility
 AIO.loadstring = loadstring or load -- loadstring name varies with lua 5.1 and 5.2
 AIO.unpack = table.unpack or unpack -- unpack place varies with lua 5.1 and 5.2
 AIO.maxn = table.maxn or function(t) local n = 0 for k, _ in pairs(t) do if(type(k) == "number" and k > n) then n = k end end return n end -- table.maxn was removed in lua 5.2
+function AIO.assert(cond, msg, level)
+    if (not cond) then
+        error(msg or "AIO assertion failed", (level or 1)+1)
+    end
+end
 
 -- Merges t2 to t1 (tables)
 function AIO:TableMerge(t1, t2)
@@ -198,7 +201,7 @@ local function val_to_str ( v )
     return '"'..v..'"'
 end
 function table.tostring( tbl )
-    assert(type(tbl) == "table")
+    AIO.assert(type(tbl) == "table", "#1 table expected", 2)
     local result = {}
     for k, v in pairs( tbl ) do
         table.insert( result, "[" .. val_to_str( k ) .. "]" .. "=" .. val_to_str( v ) )
@@ -228,7 +231,7 @@ local function table_to_real( t )
 end
 
 function table.fromstring( str )
-    assert(type(str) == "string")
+    AIO.assert(type(str) == "string", "#1 string expected", 2)
     -- Some security (disabled, not needed)
     -- if (str:find("[^{},%[%]%a%d \"=]") or
     --     str:find("%a%a") or
@@ -237,7 +240,7 @@ function table.fromstring( str )
     --     return nil
     -- end
     local func, err = AIO.loadstring("return "..str)
-    assert(func, err)
+    AIO.assert(func, err, 2)
     return table_to_real(func())
 end
 
@@ -273,13 +276,13 @@ end
 
 -- Converts a string to bytehexstring
 function AIO:ToByte(str)
-    assert(type(str) == "string")
+    AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.format((("%02x"):rep(str:len())), string.byte(str, 1, str:len())))
 end
 -- Converts a bytehexstring to string
 local function hextochar(hexstr) return (string.char((tonumber(hexstr, 16)))) end
 function AIO:FromByte(str)
-    assert(type(str) == "string")
+    AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.gsub(str, "%x%x", hextochar))
 end
 
@@ -287,12 +290,12 @@ end
 -- Note that all parameters passed to function will be accessible with ...
 -- If RetRealFunc is true, when the string is executed, it returns the function to actually use as function
 function AIO:ToFunction(FuncAsString, RetRealFunc)
-    assert(type(FuncAsString) == "string")
+    AIO.assert(type(FuncAsString) == "string", "#1 string expected", 2)
     return AIO.Identifier..AIO.Function..(RetRealFunc and 1 or 0)..AIO:ToByte(FuncAsString)
 end
 -- Converts frame or frame name to frame object parameter
 function AIO:ToFrame(FrameOrFrameName)
-    assert(type(FrameOrFrameName) == "string" or AIO:IsFrame(FrameOrFrameName))
+    AIO.assert(type(FrameOrFrameName) == "string" or AIO:IsFrame(FrameOrFrameName), "#1 string or frame expected", 2)
     if (type(FrameOrFrameName) == "table") then
         FrameOrFrameName = FrameOrFrameName:GetName()
     end
@@ -300,18 +303,18 @@ function AIO:ToFrame(FrameOrFrameName)
 end
 -- Converts table to parameter
 function AIO:ToTable(tbl)
-    assert(type(tbl) == "table")
+    AIO.assert(type(tbl) == "table", "#1 table expected", 2)
     return AIO.Identifier..AIO.Table..table.tostring(tbl)
 end
 -- Returns string parameter
 function AIO:ToString(val)
-    assert(type(val) == "string")
+    AIO.assert(type(val) == "string", "#1 string expected", 2)
     return AIO.Identifier..AIO.String..AIO:ToByte(val)
 end
 -- Returns number parameter
 function AIO:ToNumber(val)
     val = tonumber(val)
-    assert(val)
+    AIO.assert(val, "#1 number expected", 2)
     return AIO.Identifier..AIO.Number..AIO:ToByte(tostring(val))
 end
 -- Converts boolean to parameter
@@ -328,7 +331,7 @@ function AIO:ToNil()
 end
 -- Returns global variable parameter
 function AIO:ToGlobal(ObjectOrVarName)
-    assert(type(ObjectOrVarName) == "string" or AIO:IsObject(ObjectOrVarName))
+    AIO.assert(type(ObjectOrVarName) == "string" or AIO:IsObject(ObjectOrVarName), "#1 object or string expected", 2)
     if (type(ObjectOrVarName) == "table") then
         ObjectOrVarName = ObjectOrVarName:GetName()
     end
@@ -351,7 +354,7 @@ function AIO:ToMsgVal(val)
     elseif (Type == "nil") then
         return AIO:ToNil()
     elseif (Type == "function") then
-        error("Cant pass function, use AIO:ToFunction(FuncAsString) to pass a function parameter")
+        AIO.assert(false, "#1 Cant pass function, use AIO:ToFunction(FuncAsString) to pass a function parameter", 2)
     elseif (Type == "table") then
         if (AIO:IsFrame(val)) then
             return AIO:ToFrame(val:GetName())
@@ -361,7 +364,7 @@ function AIO:ToMsgVal(val)
         end
         return AIO:ToTable(val)
     else
-        error("Invalid value type ".. Type)
+        AIO.assert(false, "#1 Invalid value type ".. Type, 2)
     end
 end
 
@@ -384,7 +387,7 @@ function AIO:ToRealVal(val)
             end
             local code = AIO:FromByte(val:sub(3))
             local func, err = AIO.loadstring(code)
-            assert(func, err)
+            AIO.assert(func, err, 2)
             if (val:find("1") == 2) then
                 -- RetRealFunc was true
                 func = func()
@@ -420,7 +423,7 @@ function AIO.CreateMsg()
     -- Add a new block to object.
     -- Tag Data Name Data Arguments
     function msg:AddBlock(Name, ...)
-        assert(Name, "Block must have name")
+        AIO.assert(Name, "#1 Block must have name", 2)
         if(not self.MSG) then
             self.MSG = "";
         end
@@ -450,7 +453,7 @@ function AIO.CreateMsg()
                 end
             end
         else
-            error("Cant append "..tostring(msg2))
+            AIO.assert(false, "#1 Cant append "..tostring(msg2), 2)
         end
     end
 
@@ -502,7 +505,7 @@ end
 
 -- Send msg. Can have one or more receivers (no receivers when sending from client -> server)
 function AIO:Send(msg, player, ...)
-    assert(msg, "Trying to send a nonexistant message")
+    AIO.assert(type(msg) == "string", "#1 string expected", 2)
     
     msg = msg:gsub(AIO.Identifier, "")
     
@@ -541,22 +544,16 @@ function AIO:HandleIncomingMsg(msg, player)
         elseif (msg:find(AIO.LongMsgEnd)) == 2 then
             -- The last message of a long message received.
             if (not AIO.LongMessages[guid]) then
-                -- Dont error when client sends bad data (end without start)
-                if (AIO.SERVER) then
-                    AIO.LongMessages[guid] = nil
-                    return
-                else
-                    AIO.LongMessages[guid] = nil
-                    error("Received long message end tag even if there has been no long message")
-                    return
-                end
+                -- end received with no start
+                AIO.LongMessages[guid] = nil
+                return
             end
             AIO:ParseBlocks(AIO.LongMessages[guid]..msg:sub(3), player)
             AIO.LongMessages[guid] = nil
         else
             -- A part of a long message received.
-            -- Ignore if a msg not even started
             if (not AIO.LongMessages[guid]) then
+                -- Ignore if a msg not even started
                 return
             end
             AIO.LongMessages[guid] = AIO.LongMessages[guid]..msg:sub(2)
