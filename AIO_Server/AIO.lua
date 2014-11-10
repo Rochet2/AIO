@@ -128,26 +128,27 @@ AIO =
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.41
+AIO.Version = 0.45
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
-AIO.Ignore          = 'a'
-AIO.ShortMsg        = 'b'
-AIO.LongMsg         = 'c'
-AIO.LongMsgStart    = 'p'
-AIO.LongMsgEnd      = 'd'
-AIO.StartBlock      = 'e'
-AIO.StartData       = 'f'
-AIO.True            = 'g'
-AIO.False           = 'h'
-AIO.Nil             = 'i'
-AIO.Frame           = 'j'
-AIO.Table           = 'k'
-AIO.Function        = 'l'
-AIO.String          = 'm'
-AIO.Number          = 'n'
-AIO.Global          = 'o'
+-- Dont use hex here (abcdef or numbers)
+AIO.Ignore          = 'g'
+AIO.ShortMsg        = 'h'
+AIO.LongMsg         = 'i'
+AIO.LongMsgStart    = 'j'
+AIO.LongMsgEnd      = 'k'
+AIO.StartBlock      = 'l'
+AIO.StartData       = 'm'
+AIO.True            = 'n'
+AIO.False           = 'o'
+AIO.Nil             = 'p'
+AIO.Frame           = 'q'
+AIO.Table           = 'r'
+AIO.Function        = 's'
+AIO.String          = 't'
+AIO.Number          = 'u'
+AIO.Global          = 'v'
 AIO.Identifier      = '&'
 AIO.Prefix = AIO.Prefix:sub(1, 16) -- shorten prefix to max allowed if needed
 AIO.ServerPrefix = ("S"..AIO.Prefix):sub(1, 16)
@@ -228,13 +229,13 @@ end
 
 function table.fromstring( str )
     assert(type(str) == "string")
-    -- Some security
-    if (str:find("[^{},%[%]%a%d \"=]") or
-        str:find("%a%a") or
-        str:find('[^"]%a') or
-        not str:find("{.*}")) then
-        return nil
-    end
+    -- Some security (disabled, not needed)
+    -- if (str:find("[^{},%[%]%a%d \"=]") or
+    --     str:find("%a%a") or
+    --     str:find('[^"]%a') or
+    --     not str:find("{.*}")) then
+    --     return nil
+    -- end
     local func, err = AIO.loadstring("return "..str)
     assert(func, err)
     return table_to_real(func())
@@ -270,21 +271,16 @@ function AIO:GetObject(Name)
     return AIO.Objects[Name]
 end
 
--- Converts a string to byte string
+-- Converts a string to bytehexstring
 function AIO:ToByte(str)
-    local byte = ""
-    for i = 1, str:len() do
-        byte = byte.." "..string.byte(str, i)
-    end
-    return byte
+    assert(type(str) == "string")
+    return (string.format((("%02x"):rep(str:len())), string.byte(str, 1, str:len())))
 end
--- Converts byte string to string
+-- Converts a bytehexstring to string
+local function hextochar(hexstr) return (string.char((tonumber(hexstr, 16)))) end
 function AIO:FromByte(str)
-    local T = {}
-    for num in str:gmatch(" (%d+)") do
-        table.insert(T, num)
-    end
-    return string.char(AIO.unpack(T))
+    assert(type(str) == "string")
+    return (string.gsub(str, "%x%x", hextochar))
 end
 
 -- Converts a string to a function parameter
