@@ -112,8 +112,6 @@ AIO =
 {
     -- Stores frames etc by name
     Objects = {},
-    -- Stores long messages for players
-    LongMessages = {},
     -- Counter for nameless objects (used for naming serverside)
     NamelessCount = 0,
     -- Server side var of messages (string) to send on initing player UI
@@ -125,10 +123,14 @@ AIO =
     -- Client side flag for noting if the client has been inited or not
     -- Server side flag for noting when server load operations have been done and they should no longer be done
     INITED = false,
+    -- Server and Client side table of functions to reference by name to make msgs shorter
+    METHOD_NAME_TABLE = {},
+    -- Server and Client side table of functions to reference by index to make msgs shorter
+    METHOD_INDEX_TABLE = {},
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.5
+AIO.Version = 0.51
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
@@ -155,6 +157,10 @@ AIO.ServerPrefix = ("S"..AIO.Prefix):sub(1, 16)
 AIO.ClientPrefix = ("C"..AIO.Prefix):sub(1, 16)
 AIO.MsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -AIO.ShortMsg:len() -- remove \t, prefix, msg type indentifier
 AIO.LongMsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -AIO.LongMsg:len() -- remove \t, prefix, msg type indentifier
+
+AIO.MAX_PACKET_COUNT    = 100
+AIO.MSG_REMOVE_DELAY    = 30*1000 -- ms
+AIO.UI_INIT_DELAY       = 4*1000 -- ms
 
 -- premature optimization ftw
 local type = type
@@ -242,6 +248,18 @@ function table.fromstring( str )
     local func, err = AIO.loadstring("return "..str)
     AIO.assert(func, err, 2)
     return table_to_real(func())
+end
+
+-- This gets a numberic representation if it exists, otherwise returns passed value
+function AIO:GetFuncId(funcname)
+    if (not funcname) then return funcname end
+    return AIO.METHOD_NAME_TABLE[funcname] or funcname
+end
+
+-- This gets a string representation if it exists, otherwise returns passed value
+function AIO:GetFuncName(index)
+    if (not index) then return index end
+    return AIO.METHOD_INDEX_TABLE[index] or index
 end
 
 -- Returns true if var is an Object table
@@ -534,29 +552,74 @@ end
 
 -- Handles cleaning and assembling the messages received
 -- Messages can be 255 characters long, so big messages will be split
+local Timers = {}
+local Packets = {}
+local LongMessages = {}
+local function RemoveMsg(eventid, delay, repeats, player)
+    local guid = player:GetGUIDLow()
+    LongMessages[guid] = nil
+    Packets[guid] = nil
+    Timers[guid] = nil
+end
 function AIO:HandleIncomingMsg(msg, player)
     -- Received a long message part (msg split into 255 character parts)
     if (msg:find(AIO.LongMsg)) == 1 then
         local guid = AIO.SERVER and player:GetGUIDLow() or 1
         if (msg:find(AIO.LongMsgStart)) == 2 then
             -- The first message of a long message received. Erase any previous message (reload can mess etc)
-            AIO.LongMessages[guid] = msg:sub(3)
+            Packets[guid] = 1
+            LongMessages[guid] = msg:sub(3)
+            if (AIO.SERVER) then
+                if (Timers[guid]) then
+                    player:RemoveEventById(Timers[guid])
+                end
+                Timers[guid] = player:RegisterEvent(RemoveMsg, AIO.MSG_REMOVE_DELAY, 1)
+            else
+                Timers[guid] = true
+            end
         elseif (msg:find(AIO.LongMsgEnd)) == 2 then
             -- The last message of a long message received.
-            if (not AIO.LongMessages[guid]) then
+            if (not LongMessages[guid] or not Timers[guid] or not Packets[guid]) then
                 -- end received with no start
-                AIO.LongMessages[guid] = nil
+                if (AIO.SERVER and Timers[guid]) then
+                    player:RemoveEventById(Timers[guid])
+                end
+                LongMessages[guid] = nil
+                Packets[guid] = nil
+                Timers[guid] = nil
                 return
             end
-            AIO:ParseBlocks(AIO.LongMessages[guid]..msg:sub(3), player)
-            AIO.LongMessages[guid] = nil
+            AIO:ParseBlocks(LongMessages[guid]..msg:sub(3), player)
+            if (AIO.SERVER and Timers[guid]) then
+                player:RemoveEventById(Timers[guid])
+            end
+            LongMessages[guid] = nil
+            Packets[guid] = nil
+            Timers[guid] = nil
         else
             -- A part of a long message received.
-            if (not AIO.LongMessages[guid]) then
+            if (not LongMessages[guid] or not Timers[guid] or not Packets[guid]) then
                 -- Ignore if a msg not even started
+                if (AIO.SERVER and Timers[guid]) then
+                    player:RemoveEventById(Timers[guid])
+                end
+                LongMessages[guid] = nil
+                Packets[guid] = nil
+                Timers[guid] = nil
                 return
             end
-            AIO.LongMessages[guid] = AIO.LongMessages[guid]..msg:sub(2)
+            if (AIO.SERVER and Packets[guid] >= AIO.MAX_PACKET_COUNT) then
+                -- On server side ignore too many packets
+                if (AIO.SERVER and Timers[guid]) then
+                    player:RemoveEventById(Timers[guid])
+                end
+                LongMessages[guid] = nil
+                Packets[guid] = nil
+                Timers[guid] = nil
+                return
+            end
+            Packets[guid] = Packets[guid] + 1
+            LongMessages[guid] = LongMessages[guid]..msg:sub(2)
         end
     elseif (msg:find(AIO.ShortMsg) == 1) then
         -- Received <= 255 char msg, direct parse, take out the msg tag first
@@ -602,7 +665,10 @@ if(AIO.SERVER) then
     
     local function LOGOUT(event, player)
         -- Remove messages saved for player when he disconnects
-        AIO.LongMessages[player:GetGUIDLow()] = nil
+        local guid = player:GetGUIDLow()
+        LongMessages[guid] = nil
+        Packets[guid] = nil
+        Timers[guid] = nil
     end
 
     RegisterServerEvent(30, ONADDONMSG)

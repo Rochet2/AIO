@@ -76,6 +76,7 @@ end
 local MethodHandle = {}
 
 function BlockHandle.Method(Player, Frame, FuncName, ...)
+    FuncName = AIO:GetFuncName(FuncName)
     local name
     if (type(Frame) == "string") then
         name = Frame

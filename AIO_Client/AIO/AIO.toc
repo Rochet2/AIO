@@ -4,3 +4,4 @@
 
 AIO.lua
 AIO_BlockHandle.lua
+AIO_Objects.lua

@@ -45,8 +45,10 @@ end
 function AIO:HandleBlock(block, Player)
     -- for k, block in ipairs(Blocks) do
         local HandleName = block[1]
-        AIO.assert(BlockHandle[HandleName], "Unknown blockhandle "..HandleName, 1)
-        BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
+        if(BlockHandle[HandleName]) then
+            BlockHandle[HandleName](Player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
+        end
+        -- Server side just ignore malformed calls. User can send anything
     -- end
 end
 
@@ -83,7 +85,7 @@ function BlockHandle.Init(Player)
     if (timers[guid]) then
         return
     end
-    timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, 4000, 1) -- the timer here (4000) is the min time in ms between inits the player can do
+    timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, AIO.UI_INIT_DELAY, 1) -- the timer here (AIO.UI_INIT_DELAY) is the min time in ms between inits the player can do
     if (not InitMsg) then
         AIO.INITED = true
         AIO.INIT_MSG = AIO.INIT_MSG or AIO:CreateMsg()
