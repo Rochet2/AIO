@@ -48,6 +48,7 @@ function AIO:HandleBlock(block, Player)
 end
 
 function BlockHandle.Frame(Player, Type, Name, Parent, Template)
+    AIO.assert(type(Name) == "string", "#3 string expected", 1)
     -- if frame already exists with the name, return
     if (_G[Name]) then
         return
@@ -56,7 +57,9 @@ function BlockHandle.Frame(Player, Type, Name, Parent, Template)
 end
 
 function BlockHandle.Function(Player, Func, ...)
-    if(type(Func) == "string") then
+    if(type(Func) ~= "function") then
+        AIO.assert(Func ~= nil, "#2 valid table key expected", 1)
+        AIO.assert(_G[Func] ~= nil, "#2 table key to valid function expected", 1)
         Func = _G[Func]
     end
     Func(...)
@@ -65,7 +68,7 @@ end
 function BlockHandle.Init(Player, version)
     AIO.INITED = true
     if(AIO.Version ~= version) then
-        print("You have AIO version "..AIO.Version.." and the server uses "..version..". Get the same version")
+        print("You have AIO version "..AIO.Version.." and the server uses "..(version or "nil")..". Get the same version")
     end
 end
 
@@ -93,24 +96,40 @@ function BlockHandle.Method(Player, Frame, FuncName, ...)
 end
 
 function MethodHandle.SetVar(Frame, key, value)
+    AIO.assert(type(Frame) == "table", "#1 table expected", 1)
+    AIO.assert(key ~= nil, "#2 valid table key expected", 1)
     Frame[key] = value
 end
 
 function MethodHandle.SetScript(Frame, handle, func)
+    AIO.assert(type(Frame) == "table", "#1 table expected", 1)
+    AIO.assert(type(handle) == "string", "#2 string expected", 1)
     if(type(func) == "string") then
         -- Function was a frame method name
+        AIO.assert(Frame[func], "#3 valid Frame function name expected", 1)
         Frame:SetScript(handle, Frame[func])
-    else
+    elseif(type(func) == "function") then
         -- Normal function
         Frame:SetScript(handle, func)
+    elseif(func == nil) then
+        Frame:SetScript(handle, nil)
+    else
+        AIO.assert(false, "#3 valid function or Frame function name expected", 1)
     end
 end
 function MethodHandle.HookScript(Frame, handle, func)
+    AIO.assert(type(Frame) == "table", "#1 table expected", 1)
+    AIO.assert(type(handle) == "string", "#2 string expected", 1)
     if(type(func) == "string") then
         -- Function was a frame method name
+        AIO.assert(Frame[func], "#3 valid Frame function name expected", 1)
         Frame:HookScript(handle, Frame[func])
-    else
+    elseif(type(func) == "function") then
         -- Normal function
         Frame:HookScript(handle, func)
+    elseif(func == nil) then
+        Frame:HookScript(handle, nil)
+    else
+        AIO.assert(false, "#3 valid function or Frame function name expected", 1)
     end
 end

@@ -1247,7 +1247,7 @@ function MethodHandle.SetScript(self, Event, Func, ClientFunc, ...)
         AIO.assert(not ClientFunc or type(ClientFunc) == "string", "#3 string, nil or false expected", 2)
         local callback = AIO:ToFunction("local function CliFunc(...) "..(ClientFunc or "").." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
         self:AddBlock("Method", self:GetName(), AIO:GetFuncId("SetScript"), Event, callback)
-    elseif(ftype == "string") then
+    elseif(ftype == "string" or AIO:IsFunction(Func)) then
         -- Was client side executable function ( func as string with AIO:ToFunction(funcstr) )
         -- Imitate using a method
         self:AddBlock("Method", self:GetName(), AIO:GetFuncId("SetScript"), Event, Func)
@@ -1255,7 +1255,7 @@ function MethodHandle.SetScript(self, Event, Func, ClientFunc, ...)
         -- Was nil, erase executed function
         self:AddBlock("Method", self:GetName(), AIO:GetFuncId("SetScript"), Event, nil)
     else
-        AIO.assert(true, "#2 function or a string expected", 2)
+        AIO.assert(false, "#2 function, string or an AIO function table expected", 2)
     end
     self.Scripts[Event] = {Func, ClientFunc, ...}
 end
@@ -1269,7 +1269,7 @@ function MethodHandle.HookScript(self, Event, Func, ClientFunc, ...)
         AIO.assert(not ClientFunc or type(ClientFunc) == "string", "#3 string, nil or false expected", 2)
         local callback = AIO:ToFunction("local function CliFunc(...) "..(ClientFunc or "").." end local MSG = AIO:CreateMsg() MSG:AddBlock('ServerEvent', '"..Event.."', {...}, {CliFunc(...)}) MSG:Send()")
         self:AddBlock("Method", self:GetName(), AIO:GetFuncId("HookScript"), Event, callback)
-    elseif(ftype == "string") then
+    elseif(ftype == "string" or AIO:IsFunction(Func)) then
         -- Was client side executable function ( func as string with AIO:ToFunction(funcstr) )
         -- Imitate using a method
         self:AddBlock("Method", self:GetName(), AIO:GetFuncId("HookScript"), Event, Func)
@@ -1277,7 +1277,7 @@ function MethodHandle.HookScript(self, Event, Func, ClientFunc, ...)
         -- Was nil, erase executed function
         self:AddBlock("Method", self:GetName(), AIO:GetFuncId("HookScript"), Event, nil)
     else
-        AIO.assert(true, "#2 function or a string expected", 2)
+        AIO.assert(false, "#2 function, string or an AIO function table expected", 2)
     end
     self.Scripts[Event] = {Func, ClientFunc, ...}
 end
