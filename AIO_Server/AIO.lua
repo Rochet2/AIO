@@ -130,33 +130,33 @@ AIO =
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.58
+AIO.Version = 0.59
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
--- Dont use hex here (abcdef or numbers)
-AIO.Ignore          = 'g'
-AIO.ShortMsg        = 'h'
-AIO.LongMsg         = 'i'
-AIO.LongMsgStart    = 'j'
-AIO.LongMsgEnd      = 'k'
-AIO.StartBlock      = 'l'
-AIO.StartData       = 'm'
-AIO.True            = 'n'
-AIO.False           = 'o'
-AIO.Nil             = 'p'
-AIO.Frame           = 'q'
-AIO.Table           = 'r'
-AIO.Function        = 's'
-AIO.String          = 't'
-AIO.Number          = 'u'
-AIO.Global          = 'v'
-AIO.TableSep        = '_'
+AIO.Ignore          = 'a'
+AIO.ShortMsg        = 'b'
+AIO.LongMsg         = 'c'
+AIO.LongMsgStart    = 'd'
+AIO.LongMsgEnd      = 'e'
+AIO.EndBlock        = 'f'
+AIO.EndData         = 'g'
+AIO.True            = 'h'
+AIO.False           = 'i'
+AIO.Nil             = 'j'
+AIO.Frame           = 'k'
+AIO.Table           = 'l'
+AIO.Function        = 'm'
+AIO.String          = 'n'
+AIO.Number          = 'o'
+AIO.Global          = 'p'
+AIO.TableSep        = 'q'
+AIO.CodeChar        = '&' -- some really rare character
+AIO.CodeEscaper     = '~'
 AIO.Prefix = AIO.Prefix:sub(1, 16) -- shorten prefix to max allowed if needed
 AIO.ServerPrefix = ("S"..AIO.Prefix):sub(1, 16)
 AIO.ClientPrefix = ("C"..AIO.Prefix):sub(1, 16)
-AIO.MsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -AIO.ShortMsg:len() -- remove \t, prefix, msg type indentifier
-AIO.LongMsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -AIO.LongMsg:len() -- remove \t, prefix, msg type indentifier
+AIO.MsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -1 -- remove \t, prefix, msg type indentifier
 
 AIO.MAX_PACKET_COUNT    = 100
 AIO.MSG_REMOVE_DELAY    = 30*1000 -- ms
@@ -197,53 +197,25 @@ end
 
 -- Functions for handling converting table to string and from string
 -- table.tostring(t), table.fromstring(s)
-local function val_to_str ( v )
-    local v = AIO:ToMsgVal(v)
-    return v:len()..v
-end
 function table.tostring( tbl )
     AIO.assert(type(tbl) == "table", "#1 table expected", 2)
     local result = {}
     for k, v in pairs( tbl ) do
-        table.insert( result, val_to_str( k ) )
-        table.insert( result, val_to_str( v ) )
+        table.insert( result, AIO:ToMsgVal( k ) )
+        table.insert( result, AIO:ToMsgVal( v ) )
     end
-    return AIO.TableSep..table.concat( result, AIO.TableSep )
+    return table.concat( result, AIO.CodeChar..AIO.TableSep )..AIO.CodeChar..AIO.TableSep
 end
 
-local function get_tbl_val(str)
-    if (type(str) ~= "string") then
-        return nil
-    end
-    local len, data = str:match("^"..AIO.TableSep.."(%d+)(.*)$")
-    if (not len or not data) then
-        return nil
-    end
-    return data:sub(1, tonumber(len)), data:sub(len+1)
-end
 function table.fromstring( str )
     AIO.assert(type(str) == "string", "#1 string expected", 2)
-    
-    local t, save, _k = {}, false, nil
-    local a, b = get_tbl_val(str)
-    while (a and b) do
-        if (save) then
-            t[_k] = a
-        else
-            _k = a
-        end
-        save = not save
-        a, b = get_tbl_val(b)
-    end
-    
     local res = {}
-    for k,v in pairs(t) do
+    for k, v in str:gmatch("(.-)"..AIO.CodeChar..AIO.TableSep.."(.-)"..AIO.CodeChar..AIO.TableSep) do
         local _k, _v = AIO:ToRealVal(k), AIO:ToRealVal(v)
         if (_k ~= nil) then
             res[_k] = _v
         end
     end
-    
     return res
 end
 
@@ -305,11 +277,22 @@ function AIO:ToByte(str)
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.format((("%02x"):rep(str:len())), string.byte(str, 1, str:len())))
 end
--- Converts a bytehexstring to string
 local function hextochar(hexstr) return (string.char((tonumber(hexstr, 16)))) end
+-- Converts a bytehexstring to string
 function AIO:FromByte(str)
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.gsub(str, "%x%x", hextochar))
+end
+
+-- Escapes special character
+function AIO:Encode(str)
+    AIO.assert(type(str) == "string", "#1 string expected", 2)
+    return (string.gsub(str, AIO.CodeChar, AIO.CodeChar..AIO.CodeEscaper))
+end
+-- Unescapes special character
+function AIO:Decode(str)
+    AIO.assert(type(str) == "string", "#1 string expected", 2)
+    return (string.gsub(str, AIO.CodeChar..AIO.CodeEscaper, AIO.CodeChar))
 end
 
 -- Converts a string to a function parameter
@@ -325,7 +308,7 @@ function AIO:ToFrame(FrameOrFrameName)
     if (type(FrameOrFrameName) == "table") then
         FrameOrFrameName = FrameOrFrameName:GetName()
     end
-    return AIO.Frame..AIO:ToByte(FrameOrFrameName)
+    return AIO.Frame..FrameOrFrameName
 end
 -- Converts table to parameter
 function AIO:ToTable(tbl)
@@ -335,13 +318,13 @@ end
 -- Returns string parameter
 function AIO:ToString(val)
     AIO.assert(type(val) == "string", "#1 string expected", 2)
-    return AIO.String..AIO:ToByte(val)
+    return AIO.String..val
 end
 -- Returns number parameter
 function AIO:ToNumber(val)
     val = tonumber(val)
     AIO.assert(val, "#1 number expected", 2)
-    return AIO.Number..AIO:ToByte(tostring(val))
+    return AIO.Number..tostring(val)
 end
 -- Converts boolean to parameter
 function AIO:ToBoolean(bool)
@@ -361,45 +344,47 @@ function AIO:ToGlobal(ObjectOrVarName)
     if (type(ObjectOrVarName) == "table") then
         ObjectOrVarName = ObjectOrVarName:GetName()
     end
-    return AIO.Global..AIO:ToByte(ObjectOrVarName)
+    return AIO.Global..ObjectOrVarName
 end
 
 -- Converts a value to string using special characters to represent the value if needed
 function AIO:ToMsgVal(val)
+    local ret
     local Type = type(val)
     if (Type == "string") then
         -- if(val:match("^"..AIO.String.."%x*$") == 1) then error("Reconverting string to string:"..val, 1) end
-        return AIO:ToString(val)
+        ret = AIO:ToString(val)
     elseif (Type == "number") then
-        return AIO:ToNumber(val)
+        ret = AIO:ToNumber(val)
     elseif (Type == "boolean") then
-        return AIO:ToBoolean(val)
+        ret = AIO:ToBoolean(val)
     elseif (Type == "nil") then
-        return AIO:ToNil()
+        ret = AIO:ToNil()
     elseif (Type == "function") then
         AIO.assert(false, "#1 Cant pass function, use AIO:ToFunction(FuncAsString) to pass a function parameter", 2)
+        return
     elseif (Type == "table") then
         if (AIO:IsFrame(val)) then
-            return AIO:ToFrame(val:GetName())
+            ret = AIO:ToFrame(val:GetName())
+        elseif (AIO:IsObject(val)) then
+            ret = AIO:ToGlobal(val:GetName())
+        elseif (AIO:IsFunction(val)) then
+            ret = AIO.Function..table.tostring(val)
+        else
+            ret = AIO:ToTable(val)
         end
-        if (AIO:IsObject(val)) then
-            return AIO:ToGlobal(val:GetName())
-        end
-        if (AIO:IsFunction(val)) then
-            return AIO.Function..table.tostring(val)
-        end
-        return AIO:ToTable(val)
     else
         AIO.assert(false, "#1 Invalid value type ".. Type, 2)
+        return
     end
+    return AIO:Encode(ret)
 end
 
 -- Converts a string value from a message to the actual value it represents
 function AIO:ToRealVal(val)
     AIO.assert(type(val) == "string", "#1 string expected", 2)
     
-    local Type, data = val:match("(.)(.*)")
-    data = AIO:FromByte(data)
+    local Type, data = AIO:Decode(val):match("(.)(.*)")
     if (not Type or not data) then
         return nil
     elseif (Type == AIO.Nil) then
@@ -416,9 +401,7 @@ function AIO:ToRealVal(val)
         if (AIO.SERVER) then
             return nil -- ignore on server side, unsafe
         end
-        -- Note that we dont use data here since table itself is not bytecode, only its contents
-        -- we also need to take the type tag off from the val
-        local tbl = table.fromstring(val:sub(Type:len()+1))
+        local tbl = table.fromstring(data)
         if (not AIO:IsFunction(tbl)) then
             return nil
         end
@@ -430,9 +413,7 @@ function AIO:ToRealVal(val)
         end
         return func
     elseif(Type == AIO.Table) then
-        -- Note that we dont use data here since table itself is not bytecode, only its contents
-        -- we also need to take the type tag off from the val
-        return table.fromstring(val:sub(Type:len()+1))
+        return table.fromstring(data)
     elseif(Type == AIO.Global) then
         if (AIO.SERVER) then
             return nil -- ignore on server side, unsafe
@@ -458,7 +439,7 @@ function AIO.CreateMsg()
         if(not self.MSG) then
             self.MSG = "";
         end
-        self.MSG = self.MSG..AIO.StartData..AIO:ToMsgVal(val)
+        self.MSG = self.MSG..AIO:ToMsgVal(val)..AIO.CodeChar..AIO.EndData
     end
     
     -- Add a new block to object.
@@ -468,11 +449,11 @@ function AIO.CreateMsg()
         if(not self.MSG) then
             self.MSG = "";
         end
-        self.MSG = self.MSG..AIO.StartBlock
         self:AddVal(Name)
         for i = 1, select('#',...) do
             self:AddVal(select(i, ...))
         end
+        self.MSG = self.MSG..AIO.CodeChar..AIO.EndBlock
     end
     
     -- Function to append messages together and objects to messages to create long messages and for static frame use
@@ -506,7 +487,7 @@ function AIO.CreateMsg()
     -- Same as msg:Send(...), but sends the data with Ignore tag,
     -- which for client means that the whole message is ignored if the given value is true (can be function, frame etc)
     function msg:SendIgnoreIf(Val, ...)
-        AIO:Send(AIO.Ignore..AIO:ToMsgVal(Val)..self.MSG, ...)
+        AIO:Send(AIO.Ignore..AIO:ToMsgVal(Val)..AIO.CodeChar..AIO.EndData..self.MSG, ...)
     end
     
     function msg:Clear()
@@ -559,15 +540,13 @@ function AIO:Send(msg, player, ...)
         -- Send short <= 255 long msg
         AIO:SendAddonMessage(AIO.ShortMsg..msg, player)
     else
-        msg = AIO.LongMsgStart..msg -- Add start tag
-        
-        -- Calculate amount of messages to send -1 since one message is the end message
-        -- The msg length already contains the start tag, we add length of end tag
-        local msgs = math.ceil((msg:len()+AIO.LongMsgEnd:len()) / AIO.LongMsgLen)-1
-        for i = 1, msgs do
-            AIO:SendAddonMessage(AIO.LongMsg..string.sub(msg, ((i-1)*AIO.LongMsgLen)+1, (i*AIO.LongMsgLen)), player)
+        -- Calculate amount of messages to send -1 since one is the end message
+        local msgs = math.ceil(msg:len() / AIO.MsgLen)-1
+        AIO:SendAddonMessage(AIO.LongMsgStart..string.sub(msg, 1, AIO.MsgLen), player)
+        for i = 2, msgs do -- starts at 2 since one message was already sent
+            AIO:SendAddonMessage(AIO.LongMsg..string.sub(msg, ((i-1)*AIO.MsgLen)+1, (i*AIO.MsgLen)), player)
         end
-        AIO:SendAddonMessage(AIO.LongMsg..AIO.LongMsgEnd..string.sub(msg, ((msgs)*AIO.LongMsgLen)+1, ((msgs+1)*AIO.LongMsgLen)), player)
+        AIO:SendAddonMessage(AIO.LongMsgEnd..string.sub(msg, ((msgs)*AIO.MsgLen)+1, ((msgs+1)*AIO.MsgLen)), player)
     end
 end
 
@@ -584,86 +563,84 @@ local function RemoveMsg(eventid, delay, repeats, player)
 end
 function AIO:HandleIncomingMsg(msg, player)
     -- Received a long message part (msg split into 255 character parts)
-    if (msg:find(AIO.LongMsg)) == 1 then
-        local guid = AIO.SERVER and player:GetGUIDLow() or 1
-        if (msg:find(AIO.LongMsgStart)) == AIO.LongMsg:len() + 1 then
-            -- The first message of a long message received. Erase any previous message (reload can mess etc)
-            Packets[guid] = 1
-            LongMessages[guid] = msg:sub(3)
-            if (AIO.SERVER) then
-                if (Timers[guid]) then
-                    player:RemoveEventById(Timers[guid])
-                end
-                Timers[guid] = player:RegisterEvent(RemoveMsg, AIO.MSG_REMOVE_DELAY, 1)
-            else
-                Timers[guid] = true
+    local guid = AIO.SERVER and player:GetGUIDLow() or 1
+    if (msg:find(AIO.ShortMsg) == 1) then
+        -- Received <= 255 char msg, direct parse, take out the msg tag first
+        AIO:ParseBlocks(msg:sub(AIO.ShortMsg:len() + 1), player)
+    elseif (msg:find(AIO.LongMsgStart)) == 1 then
+        -- The first message of a long message received. Erase any previous message (reload can mess etc)
+        Packets[guid] = 1
+        LongMessages[guid] = msg:sub(AIO.LongMsgStart:len() + 1)
+        if (AIO.SERVER) then
+            if (Timers[guid]) then
+                player:RemoveEventById(Timers[guid])
             end
-        elseif (msg:find(AIO.LongMsgEnd)) == AIO.LongMsg:len() + 1 then
-            -- The last message of a long message received.
-            if (not LongMessages[guid] or not Timers[guid] or not Packets[guid]) then
-                -- end received with no start
-                if (AIO.SERVER and Timers[guid]) then
-                    player:RemoveEventById(Timers[guid])
-                end
-                LongMessages[guid] = nil
-                Packets[guid] = nil
-                Timers[guid] = nil
-                return
-            end
-            AIO:ParseBlocks(LongMessages[guid]..msg:sub(AIO.LongMsg:len() + AIO.LongMsgEnd:len() + 1), player)
+            Timers[guid] = player:RegisterEvent(RemoveMsg, AIO.MSG_REMOVE_DELAY, 1)
+        else
+            Timers[guid] = true
+        end
+    elseif (msg:find(AIO.LongMsgEnd)) == 1 then
+        -- The last message of a long message received.
+        if (not LongMessages[guid] or not Timers[guid] or not Packets[guid]) then
+            -- end received with no start
             if (AIO.SERVER and Timers[guid]) then
                 player:RemoveEventById(Timers[guid])
             end
             LongMessages[guid] = nil
             Packets[guid] = nil
             Timers[guid] = nil
-        else
-            -- A part of a long message received.
-            if (not LongMessages[guid] or not Timers[guid] or not Packets[guid]) then
-                -- Ignore if a msg not even started
-                if (AIO.SERVER and Timers[guid]) then
-                    player:RemoveEventById(Timers[guid])
-                end
-                LongMessages[guid] = nil
-                Packets[guid] = nil
-                Timers[guid] = nil
-                return
-            end
-            if (AIO.SERVER and Packets[guid] >= AIO.MAX_PACKET_COUNT) then
-                -- On server side ignore too many packets
-                if (AIO.SERVER and Timers[guid]) then
-                    player:RemoveEventById(Timers[guid])
-                end
-                LongMessages[guid] = nil
-                Packets[guid] = nil
-                Timers[guid] = nil
-                return
-            end
-            Packets[guid] = Packets[guid] + 1
-            LongMessages[guid] = LongMessages[guid]..msg:sub(AIO.LongMsg:len()+1)
+            return
         end
-    elseif (msg:find(AIO.ShortMsg) == 1) then
-        -- Received <= 255 char msg, direct parse, take out the msg tag first
-        AIO:ParseBlocks(msg:sub(AIO.ShortMsg:len() + 1), player)
+        AIO:ParseBlocks(LongMessages[guid]..msg:sub(AIO.LongMsgEnd:len() + 1), player)
+        if (AIO.SERVER and Timers[guid]) then
+            player:RemoveEventById(Timers[guid])
+        end
+        LongMessages[guid] = nil
+        Packets[guid] = nil
+        Timers[guid] = nil
+    elseif (msg:find(AIO.LongMsg)) == 1 then
+        -- A part of a long message received.
+        if (not LongMessages[guid] or not Timers[guid] or not Packets[guid]) then
+            -- Ignore if a msg not even started
+            if (AIO.SERVER and Timers[guid]) then
+                player:RemoveEventById(Timers[guid])
+            end
+            LongMessages[guid] = nil
+            Packets[guid] = nil
+            Timers[guid] = nil
+            return
+        end
+        if (AIO.SERVER and Packets[guid] >= AIO.MAX_PACKET_COUNT) then
+            -- On server side ignore too many packets
+            if (AIO.SERVER and Timers[guid]) then
+                player:RemoveEventById(Timers[guid])
+            end
+            LongMessages[guid] = nil
+            Packets[guid] = nil
+            Timers[guid] = nil
+            return
+        end
+        Packets[guid] = Packets[guid] + 1
+        LongMessages[guid] = LongMessages[guid]..msg:sub(AIO.LongMsg:len()+1)
     end
 end
 
 -- Extracts blocks from msg to a table that has block data in a table
 function AIO:ParseBlocks(msg, player)
     -- SendIgnore detect, if so, check that frame exists and return
-    local _, ignoreEnd, ignoreFrame = msg:find("^"..AIO.Ignore.."([^"..AIO.StartBlock..AIO.StartData.."]+)")
-    if(ignoreEnd) then
-        local ignore = AIO:ToRealVal(ignoreFrame)
+    local ignore, rest = msg:match("^"..AIO.Ignore.."(.-)"..AIO.CodeChar..AIO.EndData.."(.*)$")
+    if(ignore) then
+        local ignore = AIO:ToRealVal(ignore)
         if((type(ignore) == "function" and ignore(player, msg)) or ignore) then
             return
         end
-        msg = msg:sub(ignoreEnd+1)
+        msg = rest
     end
-    for block in msg:gmatch(AIO.StartBlock.."([^"..AIO.StartBlock.."]+)") do
+    for block in msg:gmatch("(.-)"..AIO.CodeChar..AIO.EndBlock) do
         local t = {}
         -- table.insert is not used here since it ignores nil values
         local i = 1
-        for data in block:gmatch(AIO.StartData.."([^"..AIO.StartData..AIO.StartBlock.."]+)") do
+        for data in block:gmatch("(.-)"..AIO.CodeChar..AIO.EndData) do
             t[i] = AIO:ToRealVal(data)
             i = i+1
         end
