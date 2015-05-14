@@ -24,65 +24,63 @@ Messages are sent as addon messages sender and target are the player
 Messages larger than 255 characters (in total) will be split to 255 character parts that will then be assembled and run when whole on the receiver end
 Some special characters will be reserved for special purposes, see the definitions below
 
-Messaging is handled by objects you can create with AIO:CreateMsg()
+Messaging is handled by objects you can create with AIO.Msg()
 The message will have functions:
-msg:AddBlock(Name, ...) -- FuncName, arguments
+msg:Add(Name, ...) -- FuncName, arguments
 msg:Send(...) -- Receiver players, will not be used for client->server messages
 msg:Append(MSG) -- Appends another message to the message
 msg:Clear() -- Deletes the message from the message
 msg:ToString() -- Returns the message (always msg var or "")
 msg:HasMsg() -- returns true or false depending on msg being string or not
-You can code handlers to the receiver end and trigger them with AddBlock
+You can code handlers to the receiver end and trigger them with Add
 Example of handler on receiver side:
 function BlockHandle.Print(value)
     Print(value)
 end
 Example of how to trigger handler from sender side:
-local msg = AIO:CreateMsg() -- new message
-msg:AddBlock("Print", "Test") -- new block that triggers Print handler with parameter "test"
+local msg = AIO.Msg() -- new message
+msg:Add("Print", "Test") -- new block that triggers Print handler with parameter "test"
 msg:Send(player) -- send message to player
 See AIO_BlockHandle.lua for more
 
-AIO:HandleBlocks(T, player) is not defined in this file
+AIO.HandleBlocks(T, player) is not defined in this file
 It is responsible for taking action for all received blocks
 See AIO_BlockHandle.lua for definition
 
 There are many useful functions aiding the messaging here
 The To functions and ToMsgVal will convert the given value to a string representative of the given value
 ToRealVal will reverse this and convert the given string to a real value it should be
-Most of these will be used automatically when you use AddBlock. ToFunction is an exception
+Most of these will be used automatically when you use Add. ToFunction is an exception
 -- Converts a value to string using special characters to represent the value if needed
-function AIO:ToMsgVal(val)
+function AIO.ToMsgVal(val)
 -- Converts a string value from a message to the actual value it represents
-function AIO:ToRealVal(val)
+function AIO.ToRealVal(val)
 -- Converts a string to a function parameter
 -- Note that all parameters passed to function will be accessible with ...
 -- If RetRealFunc is true, when the string is executed, it returns the function to actually use as function
-function AIO:ToFunction(FuncAsString, RetRealFunc)
--- Converts frame name to frame object parameter
-function AIO:ToFrame(FrameName)
+function AIO.ToFunction(FuncAsString, RetRealFunc)
 -- Converts table to parameter
-function AIO:ToTable(tbl)
+function AIO.ToTable(tbl)
 -- Converts boolean to parameter
-function AIO:ToBoolean(bool)
+function AIO.ToBoolean(bool)
 -- Returns nil parameter
-function AIO:ToNil()
+function AIO.ToNil()
 -- Converts a table to string
 function table.tostring( tbl )
 -- Converts a string created with table.tostring(tbl) back to table. Will convert Msg values to their real values
 function table.fromstring( str )
 
-When sending a function, you will NEED to use AIO:ToFunction(FuncAsString, RetRealFunc)
+When sending a function, you will NEED to use AIO.ToFunction(FuncAsString, RetRealFunc)
 You will be able to access passed variables with vararg ...
 Example:
-local func = AIO:ToFunction("print(...)")
-local msg = AIO:CreateMsg() -- new message
-msg:AddBlock("Function", func, "Test", 1) -- Add a block to call Function handler
+local func = AIO.ToFunction("print(...)")
+local msg = AIO.Msg() -- new message
+msg:Add("Function", func, "Test", 1) -- Add a block to call Function handler
 msg:Send(player) -- Prints Test 1 on receiver end
 
 Examples for RetRealFunc:
-local func = AIO:ToFunction("return print", true)
-msg:AddBlock("Function", func, "Test", 1)
+local func = AIO.ToFunction("return print", true)
+msg:Add("Function", func, "Test", 1)
 msg:Send(player) -- Prints Test 1 on receiver end
 
 local code = [[
@@ -91,66 +89,55 @@ local function MyFunc(var1, var2)
 end
 return MyFunc
 ]]
-local func = AIO:ToFunction(code, true)
-msg:AddBlock("Function", func, "a", "b")
+local func = AIO.ToFunction(code, true)
+msg:Add("Function", func, "a", "b")
 msg:Send(player) -- Prints false on receiver end
-
-Sometimes you may want to access a certain frame on the receiver end.
-You can access the frame by it's name with AIO:ToFrame(framename)
-When this is converted to the real value with AIO:ToRealVal(val), it will on client side be the frame object if found from global table _G
-If you need to access something in a function string, just use the normal _G["FrameName"]
 ]===]
 
 -- Check if loaded
 -- Try to avoid multiple loads with require etc
 if (type(AIO) == "table") then
-    return AIO
+    error("AIO was already loaded or something is wrong")
 end
 
--- Was not loaded yet, create table
+-- AIO main table
 AIO =
 {
-    -- Stores frames etc by name
-    Objects = {},
-    -- Counter for nameless objects (used for naming serverside)
-    NamelessCount = 0,
-    -- Server side var of messages (string) to send on initing player UI
-    INIT_MSG = nil,
-    -- Server side table of functions to call before initing player UI
-    PRE_INIT_FUNCS = {},
-    -- Server side table of functions to call after initing player UI
-    POST_INIT_FUNCS = {},
+    -- A server side AIO.Msg() that will be sent on init to player
+    -- you should add all addon code here with AIO.AddInitMsg(msg)
+    INITMSG = nil,
     -- Client side flag for noting if the client has been inited or not
     -- Server side flag for noting when server load operations have been done and they should no longer be done
     INITED = false,
-    -- Server and Client side table of functions to reference by name to make msgs shorter
-    METHOD_NAME_TABLE = {},
-    -- Server and Client side table of functions to reference by index to make msgs shorter
-    METHOD_INDEX_TABLE = {},
+    -- Server and Client side custom coded handlers for incoming data
+    BLOCKHANDLES = {},
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
-AIO.Version = 0.59
+AIO.Version = 0.60
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
-AIO.Ignore          = 'a'
-AIO.ShortMsg        = 'b'
-AIO.LongMsg         = 'c'
-AIO.LongMsgStart    = 'd'
-AIO.LongMsgEnd      = 'e'
-AIO.EndBlock        = 'f'
-AIO.EndData         = 'g'
-AIO.True            = 'h'
-AIO.False           = 'i'
-AIO.Nil             = 'j'
-AIO.Frame           = 'k'
-AIO.Table           = 'l'
-AIO.Function        = 'm'
-AIO.String          = 'n'
-AIO.Number          = 'o'
-AIO.Global          = 'p'
-AIO.TableSep        = 'q'
+AIO.ShortMsg        = 'a'
+AIO.LongMsg         = 'b'
+AIO.LongMsgStart    = 'c'
+AIO.LongMsgEnd      = 'd'
+AIO.EndBlock        = 'e'
+AIO.EndData         = 'f'
+AIO.True            = 'g'
+AIO.False           = 'h'
+AIO.Nil             = 'i'
+AIO.Table           = 'j'
+AIO.Function        = 'k'
+AIO.String          = 'l'
+AIO.Number          = 'm'
+AIO.pInf            = 'n'
+AIO.nInf            = 'o'
+AIO.nNan            = 'p'
+AIO.pNan            = 'q'
+AIO.TableSep        = 'r'
+AIO.Compressed      = 's'
+AIO.Uncompressed    = 't'
 AIO.CodeChar        = '&' -- some really rare character
 AIO.CodeEscaper     = '~'
 AIO.Prefix = AIO.Prefix:sub(1, 16) -- shorten prefix to max allowed if needed
@@ -158,9 +145,15 @@ AIO.ServerPrefix = ("S"..AIO.Prefix):sub(1, 16)
 AIO.ClientPrefix = ("C"..AIO.Prefix):sub(1, 16)
 AIO.MsgLen = 255 -1 -math.max(AIO.ServerPrefix:len(), AIO.ClientPrefix:len()) -1 -- remove \t, prefix, msg type indentifier
 
+-- Server client messaging limits
+-- Max limit of packets from client to server, default 100 (avoid overflow from bad user)
 AIO.MAX_PACKET_COUNT    = 100
+-- Max time to wait for a message before it is erased, default 30 sec
 AIO.MSG_REMOVE_DELAY    = 30*1000 -- ms
+-- Delay between possible sending of full addon code, default 4 sec (avoid lagging from bad user)
 AIO.UI_INIT_DELAY       = 4*1000 -- ms
+-- Setting to enable and disable compressing for messages
+AIO.MSG_COMPRESS        = true
 
 -- premature optimization ftw
 local type = type
@@ -170,24 +163,38 @@ local pairs = pairs
 local ipairs = ipairs
 local AIO = AIO
 
--- Some lua compatibility
-AIO.loadstring = loadstring or load -- loadstring name varies with lua 5.1 and 5.2
-AIO.unpack = table.unpack or unpack -- unpack place varies with lua 5.1 and 5.2
-AIO.maxn = table.maxn or function(t) local n = 0 for k, _ in pairs(t) do if(type(k) == "number" and k > n) then n = k end end return n end -- table.maxn was removed in lua 5.2
+if AIO.SERVER then
+    require("AIO_LibCompress")
+end
+
 function AIO.assert(cond, msg, level)
     if (not cond) then
         error(msg or "AIO assertion failed", (level or 1)+1)
     end
 end
 
+-- Reads a file at given absolute or relative to server root path
+-- returns the full file contents as a string
+function AIO.ReadFile(path)
+    local f = assert(io.open(path, "r"), 2)
+    local str = f:read("*all")
+    f:close()
+    return str
+end
+
+-- Some lua compatibility
+AIO.loadstring = loadstring or load -- loadstring name varies with lua 5.1 and 5.2
+AIO.unpack = table.unpack or unpack -- unpack place varies with lua 5.1 and 5.2
+AIO.maxn = table.maxn or function(t) local n = 0 for k, _ in pairs(t) do if(type(k) == "number" and k > n) then n = k end end return n end -- table.maxn was removed in lua 5.2
+
 -- Merges t2 to t1 (tables)
-function AIO:TableMerge(t1, t2)
+function AIO.TableMerge(t1, t2)
     for k,v in pairs(t2) do
         if (type(v) == "table") then
             if(type(t1[k]) ~= "table") then
                 t1[k] = {}
             end
-            AIO:TableMerge(t1[k], t2[k])
+            AIO.TableMerge(t1[k], t2[k])
         else
             t1[k] = v
         end
@@ -201,8 +208,8 @@ function table.tostring( tbl )
     AIO.assert(type(tbl) == "table", "#1 table expected", 2)
     local result = {}
     for k, v in pairs( tbl ) do
-        table.insert( result, AIO:ToMsgVal( k ) )
-        table.insert( result, AIO:ToMsgVal( v ) )
+        table.insert( result, AIO.ToMsgVal( k ) )
+        table.insert( result, AIO.ToMsgVal( v ) )
     end
     return table.concat( result, AIO.CodeChar..AIO.TableSep )..AIO.CodeChar..AIO.TableSep
 end
@@ -211,7 +218,7 @@ function table.fromstring( str )
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     local res = {}
     for k, v in str:gmatch("(.-)"..AIO.CodeChar..AIO.TableSep.."(.-)"..AIO.CodeChar..AIO.TableSep) do
-        local _k, _v = AIO:ToRealVal(k), AIO:ToRealVal(v)
+        local _k, _v = AIO.ToRealVal(k), AIO.ToRealVal(v)
         if (_k ~= nil) then
             res[_k] = _v
         end
@@ -219,20 +226,8 @@ function table.fromstring( str )
     return res
 end
 
--- This gets a numberic representation if it exists, otherwise returns passed value
-function AIO:GetFuncId(funcname)
-    if (not funcname) then return funcname end
-    return AIO.METHOD_NAME_TABLE[funcname] or funcname
-end
-
--- This gets a string representation if it exists, otherwise returns passed value
-function AIO:GetFuncName(index)
-    if (not index) then return index end
-    return AIO.METHOD_INDEX_TABLE[index] or index
-end
-
 -- Returns true if var is an AIO function table object
-function AIO:IsFunction(var)
+function AIO.IsFunction(var)
     if(type(var) ~= "table") then
         return false
     end
@@ -242,55 +237,25 @@ function AIO:IsFunction(var)
     return true
 end
 
--- Returns true if var is an Object table
-function AIO:IsObject(var)
-    if(type(var) ~= "table") then
-        return false
-    end
-    if (AIO.SERVER) then
-        return var.IS_OBJECT
-    end
-    return var.IsObjectType
-end
-
--- Returns true if var is a Frame table object
-function AIO:IsFrame(var)
-    if(type(var) ~= "table") then
-        return false
-    end
-    if (AIO.SERVER) then
-        return var.IS_FRAME
-    end
-    return var.IsObjectType and var:IsObjectType("Frame")
-end
-
--- Returns an Object (frame) by its name
-function AIO:GetObject(Name)
-    if (type(Name) ~= "string") then
-        return
-    end
-    return AIO.Objects[Name]
-end
-
--- Converts a string to bytehexstring
-function AIO:ToByte(str)
+-- Converts a string to bytehexstring - unused currently
+function AIO.ToByte(str)
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.format((("%02x"):rep(str:len())), string.byte(str, 1, str:len())))
 end
 local function hextochar(hexstr) return (string.char((tonumber(hexstr, 16)))) end
--- Converts a bytehexstring to string
-function AIO:FromByte(str)
+-- Converts a bytehexstring to string - unused currently
+function AIO.FromByte(str)
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.gsub(str, "%x%x", hextochar))
 end
 
--- Escapes special character
-function AIO:Encode(str)
+-- Escapes special characters
+function AIO.Encode(str)
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.gsub(str, AIO.CodeChar, AIO.CodeChar..AIO.CodeEscaper))
 end
--- Unescapes special character
-function AIO:Decode(str)
+-- Unescapes special characters
+function AIO.Decode(str)
     AIO.assert(type(str) == "string", "#1 string expected", 2)
     return (string.gsub(str, AIO.CodeChar..AIO.CodeEscaper, AIO.CodeChar))
 end
@@ -298,36 +263,39 @@ end
 -- Converts a string to a function parameter
 -- Note that all parameters passed to function will be accessible with ...
 -- If RetRealFunc is true, when the string is executed, it returns the function to actually use as function
-function AIO:ToFunction(FuncAsString, RetRealFunc)
+function AIO.ToFunction(FuncAsString, RetRealFunc)
     AIO.assert(type(FuncAsString) == "string", "#1 string expected", 2)
     return {F = FuncAsString, R = RetRealFunc, AIOF = true}
 end
--- Converts frame or frame name to frame object parameter
-function AIO:ToFrame(FrameOrFrameName)
-    AIO.assert(type(FrameOrFrameName) == "string" or AIO:IsFrame(FrameOrFrameName), "#1 string or frame expected", 2)
-    if (type(FrameOrFrameName) == "table") then
-        FrameOrFrameName = FrameOrFrameName:GetName()
-    end
-    return AIO.Frame..FrameOrFrameName
-end
 -- Converts table to parameter
-function AIO:ToTable(tbl)
+function AIO.ToTable(tbl)
     AIO.assert(type(tbl) == "table", "#1 table expected", 2)
     return AIO.Table..table.tostring(tbl)
 end
 -- Returns string parameter
-function AIO:ToString(val)
+function AIO.ToString(val)
     AIO.assert(type(val) == "string", "#1 string expected", 2)
     return AIO.String..val
 end
 -- Returns number parameter
-function AIO:ToNumber(val)
+function AIO.ToNumber(val)
     val = tonumber(val)
     AIO.assert(val, "#1 number expected", 2)
+    
+    if val == math.huge then      -- test for +inf
+        return AIO.pInf
+    elseif val == -math.huge then -- test for -inf
+        return AIO.nInf
+    elseif val ~= val then        -- test for nan and -nan
+        if tostring(val):find('-', 1, true) == 1 then
+            return AIO.nNan
+        end
+        return AIO.pNan
+    end
     return AIO.Number..tostring(val)
 end
 -- Converts boolean to parameter
-function AIO:ToBoolean(bool)
+function AIO.ToBoolean(bool)
     if (bool) then
         return AIO.True
     else
@@ -335,56 +303,44 @@ function AIO:ToBoolean(bool)
     end
 end
 -- Returns nil parameter
-function AIO:ToNil()
+function AIO.ToNil()
     return AIO.Nil
-end
--- Returns global variable parameter
-function AIO:ToGlobal(ObjectOrVarName)
-    AIO.assert(type(ObjectOrVarName) == "string" or AIO:IsObject(ObjectOrVarName), "#1 object or string expected", 2)
-    if (type(ObjectOrVarName) == "table") then
-        ObjectOrVarName = ObjectOrVarName:GetName()
-    end
-    return AIO.Global..ObjectOrVarName
 end
 
 -- Converts a value to string using special characters to represent the value if needed
-function AIO:ToMsgVal(val)
+function AIO.ToMsgVal(val)
     local ret
     local Type = type(val)
     if (Type == "string") then
         -- if(val:match("^"..AIO.String.."%x*$") == 1) then error("Reconverting string to string:"..val, 1) end
-        ret = AIO:ToString(val)
+        ret = AIO.ToString(val)
     elseif (Type == "number") then
-        ret = AIO:ToNumber(val)
+        ret = AIO.ToNumber(val)
     elseif (Type == "boolean") then
-        ret = AIO:ToBoolean(val)
+        ret = AIO.ToBoolean(val)
     elseif (Type == "nil") then
-        ret = AIO:ToNil()
+        ret = AIO.ToNil()
     elseif (Type == "function") then
-        AIO.assert(false, "#1 Cant pass function, use AIO:ToFunction(FuncAsString) to pass a function parameter", 2)
+        error("#1 Cant pass function, use AIO.ToFunction(FuncAsString) to pass a function parameter", 2)
         return
     elseif (Type == "table") then
-        if (AIO:IsFrame(val)) then
-            ret = AIO:ToFrame(val:GetName())
-        elseif (AIO:IsObject(val)) then
-            ret = AIO:ToGlobal(val:GetName())
-        elseif (AIO:IsFunction(val)) then
+        if (AIO.IsFunction(val)) then
             ret = AIO.Function..table.tostring(val)
         else
-            ret = AIO:ToTable(val)
+            ret = AIO.ToTable(val)
         end
     else
-        AIO.assert(false, "#1 Invalid value type ".. Type, 2)
+        error("#1 Invalid value type ".. Type, 2)
         return
     end
-    return AIO:Encode(ret)
+    return AIO.Encode(ret)
 end
 
 -- Converts a string value from a message to the actual value it represents
-function AIO:ToRealVal(val)
+function AIO.ToRealVal(val)
     AIO.assert(type(val) == "string", "#1 string expected", 2)
     
-    local Type, data = AIO:Decode(val):match("(.)(.*)")
+    local Type, data = AIO.Decode(val):match("(.)(.*)")
     if (not Type or not data) then
         return nil
     elseif (Type == AIO.Nil) then
@@ -397,12 +353,20 @@ function AIO:ToRealVal(val)
         return data
     elseif (Type == AIO.Number) then
         return tonumber(data)
+    elseif (Type == AIO.pInf) then
+        return math.huge
+    elseif (Type == AIO.nInf) then
+        return -math.huge
+    elseif (Type == AIO.pNan) then
+        return -(0/0)
+    elseif (Type == AIO.nNan) then
+        return 0/0
     elseif (Type == AIO.Function) then
         if (AIO.SERVER) then
             return nil -- ignore on server side, unsafe
         end
         local tbl = table.fromstring(data)
-        if (not AIO:IsFunction(tbl)) then
+        if (not AIO.IsFunction(tbl)) then
             return nil
         end
         local func, err = AIO.loadstring(tbl.F)
@@ -414,24 +378,13 @@ function AIO:ToRealVal(val)
         return func
     elseif(Type == AIO.Table) then
         return table.fromstring(data)
-    elseif(Type == AIO.Global) then
-        if (AIO.SERVER) then
-            return nil -- ignore on server side, unsafe
-        end
-        return _G[data]
-    elseif(Type == AIO.Frame) then
-        if(AIO.SERVER) then
-            return data
-        else
-            return _G[data]
-        end
     end
     
     return nil -- val
 end
 
 -- Creates a new message that you can append stuff to and send to client or server
-function AIO.CreateMsg()
+function AIO.Msg()
     local msg = {}
     
     -- Appends given value to the message for last block
@@ -439,59 +392,54 @@ function AIO.CreateMsg()
         if(not self.MSG) then
             self.MSG = "";
         end
-        self.MSG = self.MSG..AIO:ToMsgVal(val)..AIO.CodeChar..AIO.EndData
+        self.MSG = self.MSG..AIO.ToMsgVal(val)..AIO.CodeChar..AIO.EndData
+        return self
     end
     
     -- Add a new block to object.
     -- Tag Data Name Data Arguments
-    function msg:AddBlock(Name, ...)
+    function msg:Add(Name, ...)
         AIO.assert(Name, "#1 Block must have name", 2)
         if(not self.MSG) then
             self.MSG = "";
+        else
+            self.MSG = self.MSG..AIO.CodeChar..AIO.EndBlock
         end
         self:AddVal(Name)
         for i = 1, select('#',...) do
             self:AddVal(select(i, ...))
         end
-        self.MSG = self.MSG..AIO.CodeChar..AIO.EndBlock
+        return self
     end
     
-    -- Function to append messages together and objects to messages to create long messages and for static frame use
-    -- Example msg:Append(Frame1); msg:Append(Frame2); msg:Send(...)
-    function msg:Append(msg2, NoChilds)
+    -- Function to append messages together
+    -- Example AIO.Msg():Append(msg):Append(msgasstring):Send(...)
+    function msg:Append(msg2)
         if(not msg2) then
-            return
+            return self
         end
         if(not self.MSG) then
             self.MSG = "";
         end
         if(type(msg2) == "string") then
-            self.MSG = self.MSG..msg2
+            self.MSG = self.MSG..AIO.CodeChar..AIO.EndBlock..msg2
         elseif(type(msg2) == "table") then
             self:Append(msg2.MSG)
-            if (not NoChilds and msg2.Children) then
-                for k,v in ipairs(msg2.Children) do
-                    self:Append(v)
-                end
-            end
         else
-            AIO.assert(false, "#1 Cant append "..tostring(msg2), 2)
+            error("#1 Cant append "..tostring(msg2), 2)
         end
+        return self
     end
 
     -- varargs are receiver players if needed
     function msg:Send(...)
-        AIO:Send(self.MSG, ...)
-    end
-
-    -- Same as msg:Send(...), but sends the data with Ignore tag,
-    -- which for client means that the whole message is ignored if the given value is true (can be function, frame etc)
-    function msg:SendIgnoreIf(Val, ...)
-        AIO:Send(AIO.Ignore..AIO:ToMsgVal(Val)..AIO.CodeChar..AIO.EndData..self.MSG, ...)
+        AIO.Send(self.MSG..AIO.CodeChar..AIO.EndBlock, ...)
+        return self
     end
     
     function msg:Clear()
         self.MSG = nil
+        return self
     end
     
     function msg:ToString()
@@ -506,7 +454,7 @@ function AIO.CreateMsg()
 end
 
 -- Selects a method to send an addon message
-function AIO:SendAddonMessage(msg, player)
+function AIO.SendAddonMessage(msg, player)
     if(AIO.SERVER) then
         -- server -> client
         if(player) then
@@ -519,34 +467,40 @@ function AIO:SendAddonMessage(msg, player)
 end
 
 -- Send msg to all players (variable arguments) or self
-function AIO:SendToPlayers(msg, ...)
+function AIO.SendToPlayers(msg, ...)
     for i = 1, select('#',...) do
-        AIO:Send(msg, select(i, ...))
+        AIO.Send(msg, select(i, ...))
     end
 end
 
 -- Send msg. Can have one or more receivers (no receivers when sending from client -> server)
-function AIO:Send(msg, player, ...)
+function AIO.Send(msg, player, ...)
     AIO.assert(type(msg) == "string", "#1 string expected", 2)
+    
+    if AIO.MSG_COMPRESS then
+        msg = AIO.Compressed..assert(TLibCompress.CompressLZW(msg))
+    else
+        msg = AIO.Uncompressed..msg
+    end
     
     -- More than one receiver, mass send message
     if(...) then
-        AIO:SendToPlayers(msg, player, ...)
+        AIO.SendToPlayers(msg, player, ...)
         return
     end
     
     -- split message to 255 character packets if needed (send long message)
     if (msg:len() <= AIO.MsgLen) then
         -- Send short <= 255 long msg
-        AIO:SendAddonMessage(AIO.ShortMsg..msg, player)
+        AIO.SendAddonMessage(AIO.ShortMsg..msg, player)
     else
         -- Calculate amount of messages to send -1 since one is the end message
         local msgs = math.ceil(msg:len() / AIO.MsgLen)-1
-        AIO:SendAddonMessage(AIO.LongMsgStart..string.sub(msg, 1, AIO.MsgLen), player)
+        AIO.SendAddonMessage(AIO.LongMsgStart..string.sub(msg, 1, AIO.MsgLen), player)
         for i = 2, msgs do -- starts at 2 since one message was already sent
-            AIO:SendAddonMessage(AIO.LongMsg..string.sub(msg, ((i-1)*AIO.MsgLen)+1, (i*AIO.MsgLen)), player)
+            AIO.SendAddonMessage(AIO.LongMsg..string.sub(msg, ((i-1)*AIO.MsgLen)+1, (i*AIO.MsgLen)), player)
         end
-        AIO:SendAddonMessage(AIO.LongMsgEnd..string.sub(msg, ((msgs)*AIO.MsgLen)+1, ((msgs+1)*AIO.MsgLen)), player)
+        AIO.SendAddonMessage(AIO.LongMsgEnd..string.sub(msg, ((msgs)*AIO.MsgLen)+1, ((msgs+1)*AIO.MsgLen)), player)
     end
 end
 
@@ -561,12 +515,12 @@ local function RemoveMsg(eventid, delay, repeats, player)
     Packets[guid] = nil
     Timers[guid] = nil
 end
-function AIO:HandleIncomingMsg(msg, player)
+function AIO.HandleIncomingMsg(msg, player)
     -- Received a long message part (msg split into 255 character parts)
     local guid = AIO.SERVER and player:GetGUIDLow() or 1
     if (msg:find(AIO.ShortMsg) == 1) then
         -- Received <= 255 char msg, direct parse, take out the msg tag first
-        AIO:ParseBlocks(msg:sub(AIO.ShortMsg:len() + 1), player)
+        AIO.ParseBlocks(msg:sub(AIO.ShortMsg:len() + 1), player)
     elseif (msg:find(AIO.LongMsgStart)) == 1 then
         -- The first message of a long message received. Erase any previous message (reload can mess etc)
         Packets[guid] = 1
@@ -591,7 +545,7 @@ function AIO:HandleIncomingMsg(msg, player)
             Timers[guid] = nil
             return
         end
-        AIO:ParseBlocks(LongMessages[guid]..msg:sub(AIO.LongMsgEnd:len() + 1), player)
+        AIO.ParseBlocks(LongMessages[guid]..msg:sub(AIO.LongMsgEnd:len() + 1), player)
         if (AIO.SERVER and Timers[guid]) then
             player:RemoveEventById(Timers[guid])
         end
@@ -626,38 +580,118 @@ function AIO:HandleIncomingMsg(msg, player)
 end
 
 -- Extracts blocks from msg to a table that has block data in a table
-function AIO:ParseBlocks(msg, player)
-    -- SendIgnore detect, if so, check that frame exists and return
-    local ignore, rest = msg:match("^"..AIO.Ignore.."(.-)"..AIO.CodeChar..AIO.EndData.."(.*)$")
-    if(ignore) then
-        local ignore = AIO:ToRealVal(ignore)
-        if((type(ignore) == "function" and ignore(player, msg)) or ignore) then
-            return
-        end
-        msg = rest
+function AIO.ParseBlocks(msg, player)
+    local compression, msg = msg:sub(1, 1), msg:sub(2)
+    if compression == AIO.Compressed then
+        msg = assert(TLibCompress.DecompressLZW(msg))
     end
     for block in msg:gmatch("(.-)"..AIO.CodeChar..AIO.EndBlock) do
         local t = {}
         -- table.insert is not used here since it ignores nil values
         local i = 1
         for data in block:gmatch("(.-)"..AIO.CodeChar..AIO.EndData) do
-            t[i] = AIO:ToRealVal(data)
+            t[i] = AIO.ToRealVal(data)
             i = i+1
         end
         -- This function is not defined in AIO.lua
         -- See AIO_BlockHandle.lua
-        -- Passed values are a table containing AddBlock arguments in order and the sender player
+        -- Passed values are a table containing Add arguments in order and the sender player
         -- At this point all values of the block have been converted to real tables, functions, frames..
-        AIO:HandleBlock(t, player)
+        AIO.HandleBlock(t, player)
     end
+end
+
+function AIO.CheckArgs(fmt, block)
+    if (not fmt) then
+        return true
+    end
+    for i = 1, #fmt do
+        if (type(block[i+1]) ~= fmt[i]) then
+            return false
+        end
+    end
+    return true
+end
+
+-- Helper for HandleBlocks to discard handlename
+-- Cant use table.remove since it removes nil values
+local function DiscardFirst(_, ...)
+    return ...
+end
+
+-- Calls the handler for block, see AIO.RegisterEvent
+function AIO.HandleBlock(block, player)
+    local HandleName = block[1]
+    if (not HandleName) then
+        return -- invalid message
+    end
+    local handledata = AIO.BLOCKHANDLES[HandleName]
+    if(handledata and AIO.CheckArgs(handledata.fmt, block, n)) then
+        -- Using of maxn is important instead of # operator since the table contains
+        -- holes (nil mixed in) and # will then possibly return invalid length
+        handledata.func(player, DiscardFirst(AIO.unpack(block, 1, AIO.maxn(block))))
+    elseif not AIO.SERVER then
+        error("Unknown AIO block handle: "..tostring(HandleName))
+    end
+end
+
+-- Adds a new callback function for AIO that is called if
+-- a block with the same name is recieved and the block has the correct format if given
+-- fmt is a table of lua type strings: {"string", "table", "number", ...}
+-- all parameters the client sends will be passed to func when called
+function AIO.RegisterEvent(name, func, fmt)
+    assert(type(name) == "string", "name of the registered event must be a string")
+    assert(type(func) == "function", "callback function must be a function")
+    assert(fmt == nil or type(fmt) == "table", "format must be a table of lua types or nil")
+    assert(not AIO.BLOCKHANDLES[name], "an event is already registered for the name: "..name)
+    for k,v in ipairs(fmt or {}) do
+        assert(type(v) ~= "string", "fmt must contain only lua type strings")
+    end
+    AIO.BLOCKHANDLES[name] = {func = func, fmt = fmt}
+end
+
+-- Adds a new callback function for AIO that is called if
+-- a block with the same name is recieved and the block has the correct format if given
+-- fmt is a table of lua type strings: {"string", "table", "number", ...}
+-- all parameters the client sends will be passed to func when called
+function AIO.AddInitMsg(msg)
+    AIO.INITMSG = AIO.INITMSG or AIO.Msg():Add("Init", AIO.Version)
+    AIO.INITMSG:Append(msg)
 end
 
 -- Addon message receiver setup
 if(AIO.SERVER) then
+    -- This restricts player's ability to request the initial UI to some set time
+    local timers = {}
+    local function RemoveInitTimer(eventid, playerguid)
+        if(type(playerguid) == "number") then
+            timers[playerguid] = nil
+        end
+    end
+    -- This handles sending initial UI to player and calling the on UI init hooks
+    local function Init(player)
+        -- check that the data we have is valid
+        if(type(player) ~= "userdata" or type(player.GetObjectType) ~= "function" or player:GetObjectType() ~= "Player") then
+            return
+        end
+        -- check that the player is not on cooldown for init calling
+        local guid = player:GetGUIDLow()
+        if (timers[guid]) then
+            return
+        end
+        -- make a new cooldown for init calling
+        timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, AIO.UI_INIT_DELAY, 1) -- the timer here (AIO.UI_INIT_DELAY) is the min time in ms between inits the player can do
+
+        local InitMsg = AIO.INITMSG or AIO.Msg():Add("Init", AIO.Version)
+        InitMsg:Send(player)
+    end
+
+    AIO.RegisterEvent("Init", Init)
+
     -- If serverscript
     local function ONADDONMSG(event, sender, Type, prefix, msg, target)
         if(prefix == AIO.ClientPrefix and tostring(sender) == tostring(target)) then
-            AIO:HandleIncomingMsg(msg, sender)
+            AIO.HandleIncomingMsg(msg, sender)
         end
     end
     
@@ -674,15 +708,35 @@ if(AIO.SERVER) then
 else
     -- If addonscript
     
+    local function Function(player, Func, ...)
+        if(type(Func) ~= "function") then
+            error(Func ~= nil, "#2 valid function or global table key expected", 1)
+            error(_G[Func] ~= nil, "#2 valid function or global table key expected", 1)
+            Func = _G[Func]
+        end
+        Func(...)
+    end
+
+    local function Init(player, version)
+        AIO.INITED = true
+        if(AIO.Version ~= version) then
+            print("You have AIO version "..AIO.Version.." and the server uses "..(version or "nil")..". Get the same version")
+        else
+            print("Initialized AIO version "..AIO.Version)
+        end
+    end
+
+    AIO.RegisterEvent("Function", Function)
+    AIO.RegisterEvent("Init", Init)
+
     -- message to request initialization of UI
-    local initmsg = AIO:CreateMsg()
-    initmsg:AddBlock("Init")
+    local initmsg = AIO.Msg():Add("Init")
     
     local function ONADDONMSG(self, event, prefix, msg, Type, sender)
         if (prefix == AIO.ServerPrefix) then
             if(event == "CHAT_MSG_ADDON" and sender == UnitName("player")) then
                 -- Normal AIO message handling from addon messages
-                AIO:HandleIncomingMsg(msg, sender)
+                AIO.HandleIncomingMsg(msg, sender)
             end
         elseif(event == "PLAYER_LOGIN") then
             -- Request initialization of UI on player login if not done yet
@@ -715,9 +769,15 @@ else
     MsgReceiver:RegisterEvent("CHAT_MSG_ADDON")
     MsgReceiver:SetScript("OnEvent", ONADDONMSG)
     MsgReceiver:SetScript("OnUpdate", ONUPDATE)
+    
+    
+    local function Addons(player, ...)
+        for i = 1, select('#', ...) do
+            local func = assert(AIO.loadstring(select(i, ...)))
+            func()
+        end
+    end
+    AIO.RegisterEvent("Addons", Addons)
 end
 
-if (AIO.SERVER) then
-    require("AIO_Objects")
-    require("AIO_BlockHandle")
-end
+return AIO

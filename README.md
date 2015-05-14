@@ -1,6 +1,6 @@
 #AIO
 
-AIO allows creating addons through server-client messaging. Requires Eluna: https://github.com/ElunaLuaEngine/Eluna
+AIO allows server-client messaging and sending lua addons to player from server. Requires Eluna: https://github.com/ElunaLuaEngine/Eluna
 
 - [Installation](INSTALL.md)
 

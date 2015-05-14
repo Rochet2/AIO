@@ -2,6 +2,5 @@
 ## Title: AIO
 ## Author: Rochet2 <https://github.com/Rochet2>
 
+AIO_LibCompress.lua
 AIO.lua
-AIO_BlockHandle.lua
-AIO_Objects.lua
