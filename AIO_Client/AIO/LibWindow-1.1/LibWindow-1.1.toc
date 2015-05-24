@@ -1,0 +1,16 @@
+﻿## Interface: 60000
+## LoadOnDemand: 1
+## Title: Lib: Window-1.1
+## Version: 1.1.12
+## Notes: A library that handles the basics of "window" style frames
+## Author: Mikk
+## eMail: dpsgnome@mail.com
+## X-Category: Library
+## X-License: Public Domain
+## X-Curse-Packaged-Version: r12
+## X-Curse-Project-Name: LibWindow-1.1
+## X-Curse-Project-ID: libwindow-1-1
+## X-Curse-Repository-ID: wow/libwindow-1-1/mainline
+
+LibStub.lua
+LibWindow-1.1\LibWindow-1.1.lua

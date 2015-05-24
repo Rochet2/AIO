@@ -123,6 +123,10 @@ local ceil = math.ceil
 -- AIO main table
 AIO =
 {
+    -- Client side table containing frames that need to have their position saved
+    SAVEDFRAMES = {},
+    -- Contains functions to execute when an init msg is received
+    INITHOOKS = {},
     -- A server side table of addon codes
     -- you should add all addon code here with AIO.AddAddon(name, code)
     ADDONS = {},
@@ -137,11 +141,13 @@ AIO =
     INITED = false,
     -- Server and Client side custom coded handlers for incoming data
     BLOCKHANDLES = {},
+    -- Server and Client side functions to execute on AIO messages
+    HANDLERS = {},
 }
 
 AIO.SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-AIO.Version = 0.70
+AIO.Version = 0.75
 -- Used for client-server messaging
 AIO.Prefix  = "AIO"
 -- ID characters for client-server messaging
@@ -173,7 +179,7 @@ AIO.ClientPrefix = sub(("C"..AIO.Prefix), 1, 16)
 AIO.MsgLen = 255 -1 -math.max(len(AIO.ServerPrefix), len(AIO.ClientPrefix)) -1 -- remove \t, prefix, msg type indentifier
 
 -- Enables some additional prints for debugging
-AIO.ENABLE_DEBUG_MSGS       = false -- default false
+AIO.ENABLE_DEBUG_MSGS   = false -- default false
 
 -- Server client messaging config
 -- Max limit of packets from client to server, default 100 (avoid overflow from bad user)
@@ -199,6 +205,8 @@ if AIO.SERVER then
     -- On client it is on the .toc file
     compressor = require("AIO_LibCompress")
     obfuscator = require("LuaSrcDiet")
+else
+    AIO.lwin = LibStub("LibWindow-1.1")
 end
 
 -- Used to print debug messages if AIO.ENABLE_DEBUG_MSGS is true
@@ -517,7 +525,7 @@ function AIO.SendAddonMessage(msg, player)
     AIO.assert(type(msg) == 'string', "#1 string expected", 2)
     if AIO.SERVER then
         -- server -> client
-        AIO.assert(player, "#2 player expected", 2)
+        AIO.assert(type(player) == 'userdata', "#2 player expected, got "..type(player), 2)
         player:SendAddonMessage(AIO.ServerPrefix, msg, 7, player)
     else
         -- client -> server
@@ -652,16 +660,16 @@ end
 
 -- Extracts blocks from parsed addon messages to a table
 function AIO.ParseBlocks(msg, player)
+    
+    AIO.debug("Received messagelength:", len(msg))
+
     -- Check if message is compressed and uncompress if needed
-        print(tostring(sub(msg, 1, 5)))
     local compression, msg = sub(msg, 1, 1), sub(msg, 2)
-    print(compression, AIO.Compressed)
     if compression == AIO.Compressed then
         msg = assert(compressor.DecompressLZW(msg))
     end
     -- Handle parsing of all blocks
     for block in gmatch(msg, "(.-)"..AIO.CodeChar..AIO.EndBlock) do
-        print(tostring(block))
         local t = {}
         local i = 1
         -- handle parsing of all values in block
@@ -702,7 +710,6 @@ end
 -- for adding handlers for blocks
 function AIO.HandleBlock(block, player)
     local HandleName = block[1]
-    print(tostring(HandleName):sub(1, 20))
     if not HandleName then
         if AIO.SERVER then
             AIO.debug("Invalid handle, no handle name")
@@ -747,6 +754,60 @@ function AIO.RegisterEvent(name, func, fmt)
     AIO.BLOCKHANDLES[name] = {func = func, fmt = fmt}
 end
 
+-- Adds a table of handler functions for the specified name.
+-- You can fill a table with functions and use this to add them for a name.
+-- Then when a message like AIO.Msg():Add("MyName", "HandlerName"):Send()
+-- is received, the handlertable["HandlerName"] will be executed with player and additional params passed to the block.
+-- Returns the passed table
+function AIO.AddHandlers(name, handlertable)
+    AIO.assert(type(name) == 'string', "#1 string expected", 2)
+    AIO.assert(type(handlertable) == 'table', "#2 a table expected", 2)
+    
+    for k,v in pairs(handlertable) do
+        AIO.assert(type(v) == 'function', "#2 a table of functions expected, found a "..type(v).." value", 2)
+    end
+    
+    local function handler(player, key, ...)
+        if key and handlertable[key] then
+            handlertable[key](player, ...)
+        end
+    end
+    AIO.RegisterEvent(name, handler)
+    return handlertable
+end
+
+if AIO.SERVER then
+    -- A shorthand for sending a message for a handler.
+    function AIO.Handle(player, name, handlername, ...)
+        AIO.assert(type(player) == 'userdata', "#1 player expected", 2)
+        AIO.assert(type(name) == 'string', "#2 string expected", 2)
+        return AIO.Msg():Add(name, handlername, ...):Send(player)
+    end
+else
+    -- A shorthand for sending a message for a handler.
+    function AIO.Handle(name, handlername, ...)
+        AIO.assert(type(name) == 'string', "#1 string expected", 2)
+        return AIO.Msg():Add(name, handlername, ...):Send()
+    end
+end
+
+-- Adds the current file as an AIO sent addon.
+-- Can be used from server and client, but on client does nothing.
+-- You can provide path and/or name of the lua file to add, but if
+-- omitted the file the function is executed in will be used as path
+-- and the path's or given path's file name will be used.
+-- Returns true if addon was added
+function AIO.AddAddon(path, name)
+    if AIO.SERVER then
+        path = path or debug.getinfo(2, 'S').short_src
+        name = name or path:match("([^/]*)$")
+        local code = AIO.ReadFile(path)
+        AIO.AddAddonCode(name, code)
+        AIO.debug("Added addon path&name:", path, name)
+        return true
+    end
+end
+
 if AIO.SERVER then
     local blrot = bit32.lrotate -- requires bit lib (lua 5.2)
     local sbyte = byte
@@ -766,7 +827,7 @@ if AIO.SERVER then
     -- The addon is cached on client side and will be updated if needed.
     -- name is an unique ID for the addon, usually you can use the file name or addon name there
     -- Do note that short names are better since they are sent back and forth to indentify files
-    function AIO.AddAddon(name, code)
+    function AIO.AddAddonCode(name, code)
         AIO.assert(type(name) == 'string', "#1 string expected", 2)
         AIO.assert(type(code) == 'string', "#2 string expected", 2)
         if AIO.CODE_OBFUSCATE then
@@ -778,6 +839,16 @@ if AIO.SERVER then
         AIO.assert(type(code) == 'string', "Some code trimming operation failed", 2)
         AIO.ADDONS[name] = {name=name, crc=AIO.crc(code), code=code}
         tinsert(AIO.ADDONSORDER, AIO.ADDONS[name])
+    end
+
+    -- Adds a new function that is called when an init message
+    -- is about to be sent by server. The function is called before sending and
+    -- the message is passed to it along with the player if available:
+    -- func(msg[, player])
+    -- you can modify the passed message and or return a new one
+    function AIO.AddOnInit(func)
+        AIO.assert(type(func) == 'function', "#1 function expected", 2)
+        table.insert(AIO.INITHOOKS, func)
     end
 
     -- This restricts player's ability to request the initial UI to some set time delay
@@ -792,8 +863,8 @@ if AIO.SERVER then
     -- Then the server checks what files it has to send back and what it has to remove from the client's cache.
     -- Then after server sends the required data to client, the client will one by one execute the addons
     -- in the same order as they are sent from the server.
-    local versionmsg = AIO.Msg():Add("Init", AIO.Version)
-    local function Init(player, version, ...)
+    local versionmsg = AIO.Msg():Add("AIO", "Init", AIO.Version)
+    function AIO.HANDLERS.Init(player, version, ...)
         -- check that the player is not on cooldown for init calling
         local guid = player:GetGUIDLow()
         if timers[guid] then
@@ -833,22 +904,25 @@ if AIO.SERVER then
             if cached[name] then
                 if cached[name] == 1 then -- valid
                     -- send crc only
-                    initmsg:Add("Addon", name, 0, nil)
+                    initmsg:Add("AIO", "Addon", name, 0, nil)
                 elseif cached[name] == 2 then -- outdated
                     -- send new
-                    initmsg:Add("Addon", name, crc, code)
+                    initmsg:Add("AIO", "Addon", name, crc, code)
                 elseif cached[name] == 3 then -- not valid
                     -- send nil for erase
-                    initmsg:Add("Addon", name, nil, nil)
+                    initmsg:Add("AIO", "Addon", name, nil, nil)
                 end
             else
                 -- not cached, send new
-                initmsg:Add("Addon", name, crc, code)
+                initmsg:Add("AIO", "Addon", name, crc, code)
             end
+        end
+        
+        for k,v in ipairs(AIO.INITHOOKS) do
+            initmsg = v(initmsg, player) or initmsg
         end
         initmsg:Send(player)
     end
-    AIO.RegisterEvent("Init", Init, {'number'})
 
     -- An addon message event handler for the lua engine
     -- If the message data is correct, move the message forward to the AIO message handler.
@@ -870,9 +944,11 @@ if AIO.SERVER then
     end
     RegisterPlayerEvent(4, LOGOUT)
 
+    for k,v in ipairs(GetPlayersInWorld()) do
+        AIO.Handle(v, "AIO", "ForceReload")
+    end
 
 else
-
     
     -- Key is a key for a variable in the global table _G
     -- The variable is stored when the player logs out and will be restored
@@ -880,7 +956,7 @@ else
     -- these variables are account bound
     function AIO.AddSavedVar(key)
         AIO.assert(key ~= nil, "#1 table key expected", 2)
-        tinsert(AIO.SAVEDVARS, key)
+        AIO.SAVEDVARS[key] = true
     end
     
     -- Key is a key for a variable in the global table _G
@@ -889,28 +965,39 @@ else
     -- these variables are character bound
     function AIO.AddSavedVarChar(key)
         AIO.assert(key ~= nil, "#1 table key expected", 2)
-        tinsert(AIO.SAVEDVARSCHAR, key)
+        AIO.SAVEDVARSCHAR[key] = true
     end
 
     -- A block handler for AddSavedVar name,
     -- Adds a new character bound saved var. See AIO.AddSavedVar(key) for more
-    local function AddSavedVar(player, key)
+    function AIO.HANDLERS.AddSavedVar(player, key)
         AIO.assert(key ~= nil, "#1 table key expected", 2)
         AIO.AddSavedVar(key)
     end
-    AIO.RegisterEvent("AddSavedVar", AddSavedVar)
 
     -- A block handler for AddSavedVarChar name,
     -- Adds a new character bound saved var. See AIO.AddSavedVarChar(key) for more
-    local function AddSavedVarChar(player, key)
+    function AIO.HANDLERS.AddSavedVarChar(player, key)
         AIO.assert(key ~= nil, "#1 table key expected", 2)
         AIO.AddSavedVarChar(key)
     end
-    AIO.RegisterEvent("AddSavedVarChar", AddSavedVarChar)
+    
+    AIO_FRAMEPOSITIONS = AIO_FRAMEPOSITIONS or {}
+    AIO.AddSavedVar("AIO_FRAMEPOSITIONS")
+    AIO_FRAMEPOSITIONSCHAR = AIO_FRAMEPOSITIONSCHAR or {}
+    AIO.AddSavedVarChar("AIO_FRAMEPOSITIONSCHAR")
+    -- Makes the frame save it's position over relog
+    -- If char is true, the position saving is character bound, otherwise account bound
+    function AIO.SavePosition(frame, char)
+        AIO.lwin.RegisterConfig(frame, char and AIO_FRAMEPOSITIONSCHAR or AIO_FRAMEPOSITIONS)
+        AIO.lwin.RestorePosition(frame)
+        AIO.lwin.SavePosition(frame)
+        table.insert(AIO.SAVEDFRAMES, frame)
+    end
 
     -- A block handler for Function name, executes the sent function with passed parameters.
     -- Functions can not be sent or executed on server side.
-    local function Function(player, Func, ...)
+    function AIO.HANDLERS.Function(player, Func, ...)
         if type(Func) ~= "function" then
             error(Func ~= nil, "#2 valid function or global table key expected", 1)
             error(_G[Func] ~= nil, "#2 valid function or global table key expected", 1)
@@ -918,11 +1005,10 @@ else
         end
         Func(...)
     end
-    AIO.RegisterEvent("Function", Function)
 
     -- A block handler for Init name, checks the version number and errors if needed
     -- On wrong version prevents handling any more messages
-    local function Init(player, version)
+    function AIO.HANDLERS.Init(player, version)
         AIO.INITED = true
         if(AIO.Version ~= version) then
             print("You have AIO version "..AIO.Version.." and the server uses "..(version or "nil")..". Get the same version")
@@ -932,7 +1018,6 @@ else
             print("Initialized AIO version "..AIO.Version..". Type '/aio help' for commands")
         end
     end
-    AIO.RegisterEvent("Init", Init)
 
     -- A client side event handler
     -- Passes the incoming message to AIO message handler if it is valid
@@ -952,7 +1037,10 @@ else
     -- Stores new and changed addons to cache and runs the addon from cache
     -- Also removes removed and outdated addons
     -- On wrong version prevents handling any more messages
-    local function Addon(player, name, crc, code)
+    function AIO.HANDLERS.Addon(player, name, crc, code)
+        if type(name) ~= 'string' then
+            return
+        end
         AIO.debug("Incoming addon (name, crc, hascode): "..name, crc, not not code)
         if crc and code then
             AIO_sv_Addons[name] = {crc=crc, code=code}
@@ -964,7 +1052,24 @@ else
         end
         assert(AIO.loadstring(AIO_sv_Addons[name].code, name))()
     end
-    AIO.RegisterEvent("Addon", Addon, {"string"})
+    
+    -- Forces reload of UI for user on next action
+    function AIO.HANDLERS.ForceReload(player)
+        local frame = CreateFrame("BUTTON")
+        frame:SetToplevel(true)
+        frame:SetFrameStrata("TOOLTIP")
+        frame:SetFrameLevel(100)
+        frame:SetAllPoints(WorldFrame)
+        -- frame.texture = frame:CreateTexture()
+        -- frame.texture:SetAllPoints(frame)
+        -- frame.texture:SetTexture(0.1, 0.1, 0.1, 0.5)
+        frame:SetScript("OnClick", ReloadUI)
+        print("AIO: Force reloading UI")
+        message("AIO: Force reloading UI")
+    end
 end
+
+-- Adds all handlers from AIO.HANDLERS for the "AIO" msg handler
+AIO.AddHandlers("AIO", AIO.HANDLERS)
 
 return AIO

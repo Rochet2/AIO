@@ -9,9 +9,10 @@ Requires Eluna LuaEngine: https://github.com/ElunaLuaEngine/Eluna
 
 Backlink: https://github.com/Rochet2/AIO
 
-#Dependencies
+#Included dependencies
 - Obfuscation: http://luasrcdiet.luaforge.net/
 - Compression: https://love2d.org/wiki/TLTools
+- Position saver: http://www.wowace.com/addons/libwindow-1-1/
 
 #Special thanks
 - Kenuvis < [Gate](http://www.ac-web.org/forums/showthread.php?148415-LUA-Gate-Project), [ElunaGate](https://github.com/ElunaLuaEngine/ElunaGate) >

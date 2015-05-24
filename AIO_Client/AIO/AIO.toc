@@ -1,9 +1,12 @@
 ## Interface: 30300
 ## Title: AIO
+## Notes: Allows sending addons from server to client and allows client-server communication.
 ## Author: Rochet2 <https://github.com/Rochet2>
 ## SavedVariables: AIO_sv, AIO_sv_Addons
 ## SavedVariablesPerCharacter: AIO_sv_char
 
+LibWindow-1.1\LibStub.lua
+LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua
 AIO_LibCompress.lua
 AIO.lua
 AIO_sv.lua

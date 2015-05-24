@@ -17,9 +17,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 ]]
 
 --[[
-CLIENT FILE
-This file handles the saved variables and character specific saved variables
-At the bottom there is also code for all slash commands
+This file handles the saved variables and character specific saved variables.
+The saved variable handling also sends the init messages.
+At the bottom there is also the code for all slash commands.
 ]]
 
 local frame = CreateFrame("FRAME") -- Need a frame to respond to events
@@ -59,7 +59,7 @@ function frame:OnEvent(event, addon)
         -- Request initialization of UI if not done yet
         -- works by timer for every second. Timer shut down after inited.
         -- initmsg consists of the version and all known crc codes for cached addons.
-        local initmsg = AIO.Msg():Add("Init", AIO.Version)
+        local initmsg = AIO.Msg():Add("AIO", "Init", AIO.Version)
         local rem = {}
         for name, data in pairs(AIO_sv_Addons) do
             if type(name) ~= 'string' or type(data) ~= 'table' or type(data.crc) ~= 'number' or type(data.code) ~= 'string' then
@@ -95,12 +95,16 @@ function frame:OnEvent(event, addon)
     elseif event == "PLAYER_LOGOUT" then
         -- On logout we must store all global namespace to saved vars
         AIO_sv = {} -- discard vars that no longer exist
-        for _,key in ipairs(AIO.SAVEDVARS) do
+        for key,_ in pairs(AIO.SAVEDVARS or {}) do
             AIO_sv[key] = _G[key]
         end
         AIO_sv_char = {} -- discard vars that no longer exist
-        for _,key in ipairs(AIO.SAVEDVARSCHAR) do
+        for key,_ in pairs(AIO.SAVEDVARSCHAR or {}) do
             AIO_sv_char[key] = _G[key]
+        end
+        
+        for k,v in ipairs(AIO.SAVEDFRAMES or {}) do
+            AIO.lwin.SavePosition(v)
         end
     end
 end
@@ -136,8 +140,17 @@ function cmds.help()
 end
 helps.reset = "resets local AIO cache - clears saved addons and their saved variables and reloads the UI"
 function cmds.reset()
-    AIO_sv = nil
-    AIO_sv_char = nil
+    AIO.SAVEDVARS = nil
+    AIO.SAVEDVARSCHAR = nil
     AIO_sv_Addons = nil
+    AIO.SAVEDFRAMES = {}
     ReloadUI()
+end
+helps.compress = "toggles compression for the sent messages"
+function cmds.compress()
+    AIO.MSG_COMPRESS = not AIO.MSG_COMPRESS
+end
+helps.debug = "toggles showing of debug messages"
+function cmds.debug()
+    AIO.ENABLE_DEBUG_MSGS = not AIO.ENABLE_DEBUG_MSGS
 end
