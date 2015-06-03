@@ -5,8 +5,11 @@
 ## SavedVariables: AIO_sv, AIO_sv_Addons
 ## SavedVariablesPerCharacter: AIO_sv_char
 
+#dependencies
 LibWindow-1.1\LibStub.lua
 LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua
-AIO_LibCompress.lua
+LuaSerializer\LibCompress.lua
+LuaSerializer\LuaSerializer.lua
+
+#core
 AIO.lua
-AIO_sv.lua
