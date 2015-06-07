@@ -8,8 +8,8 @@
 #dependencies
 LibWindow-1.1\LibStub.lua
 LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua
-LuaSerializer\LibCompress.lua
-LuaSerializer\LuaSerializer.lua
+LibCompress.lua
+Smallfolk\smallfolk.lua
 
 #core
 AIO.lua

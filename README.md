@@ -11,8 +11,42 @@ Backlink: https://github.com/Rochet2/AIO
 - Copy the __contents__ of `AIO_Server` to your `server_root/lua_scripts/`
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
 
+#Commands
+There are some commands that may be useful.
+On client side use `/aio help` to see a list of them and on server side use `.aio help`
+
+#Safety
+The messaging between server and client is coded to be safe
+
+- server can send any length and type data to client - no restrictions
+- client can only send a fixed amount of data that you can set in AIO.lua file
+- data received from client is only deserialized - no compressions etc.
+- serialization library is not using loadstring to make deserialization safe
+- when receiving messages the code is ran in pcall to prevent user sent data creating errors. Set debug messages on in AIO.lua to see all errors on server side as well
+- the code is only as safe as you make it. In your own codes make sure all data the client sends to server and you use is the type you expect it to be and is in the range you expect it to be in. (example: math.huge is a number type, but not a real number)
+- make sure your code has asserts in place and is fast. There is a tweakable timeout in AIO.lua just to be sure that the server will not hang if you happen to write bad or abusable code or if a bad user finds a way to hang the system
+
+#Handlers
+AIO has a few handlers by default that are used for the internal codes and you can
+use them if you wish.  
+You can also code your own handlers and add them to AIO with the functions described in API section. See AIO.RegisterEvent(name, func) and AIO.AddHandlers(name, handlertable)
+
+```lua
+-- Force reload of player UI
+-- Displays a message that UI is being force reloaded and reloads UI when player
+-- clicks anywhere in his screen.
+AIO.Handle(player, "AIO", "ForceReload")
+
+-- Force reset of player UI
+-- Resets AIO addon saved variables and displays a message that UI is being force
+-- reloaded and reloads UI when player clicks anywhere in his screen.
+AIO.Handle(player, "AIO", "ForceReset")
+```
+
 #API
 For example scripts see the Examples folder. The example files are named according to their final execution location. To run the examples place all of their files to `server_root/lua_scripts/`.
+
+There are some client side commands. Use the slash command `/aio` ingame to see list of commands
 
 ```lua
 -- AIO is required this way due to server and client differences with require function
@@ -24,7 +58,14 @@ local AIO = AIO or require("AIO")
 -- Returns false on client side and true on server side. By default the
 -- path is the current file's path and name is the file's name
 -- 'path' is relative to worldserver.exe but an absolute path can also be given.
+-- You should call this function only on startup to ensure everyone gets the same
+-- addons and no addon is duplicate.
 added = AIO.AddAddon([path, name])
+-- The way this is designed to be used is at the top of an addon file so that the
+-- file is added and not run if we are on server, and just run if we are on client:
+if AIO.AddAddon() then
+    return
+end
 
 -- Similar to AddAddon - Adds 'code' to the addons sent to players. The code is trimmed
 -- according to settings in AIO.lua. The addon is cached on client side and will
@@ -32,60 +73,77 @@ added = AIO.AddAddon([path, name])
 -- you can use the file name or addon name there. Do note that short names are
 -- better since they are sent back and forth to indentify files.
 -- The function only exists on server side.
+-- You should call this function only on startup to ensure everyone gets the same
+-- addons and no addon is duplicate.
 AIO.AddAddonCode(name, code)
 
--- Triggers the handler with the 'handlername' from the handlertable added with
--- AIO.AddHandlers(name, handlertable) for the 'name'
+-- Triggers the handler function that has the name 'handlername' from the handlertable
+-- added with AIO.AddHandlers(name, handlertable) for the 'name'.
+-- Can also trigger a function registered with AIO.RegisterEvent(name, func)
+-- All triggered handlers have parameters handler(player, ...) where varargs are
+-- the varargs in AIO.Handle or msg.Add
+-- This function is a shorthand for AIO.Msg():Add(name, handlername, ...):Send()
+-- For efficiency favour creating messages once and sending them rather than creating
+-- them over and over with AIO.Handle().
 -- The server side version.
 AIO.Handle(player, name, handlername[, ...])
 -- The client side version.
 AIO.Handle(name, handlername[, ...])
 
--- Adds a table of handler functions for the specified 'name'. When a message like
---  AIO.Handle(name, "HandlerName", ...) is received, the handlertable["HandlerName"]
+-- Adds a table of handler functions for the specified 'name'. When a message like:
+-- AIO.Handle(name, "HandlerName", ...) is received, the handlertable["HandlerName"]
 -- will be called with player and varargs as parameters.
--- Returns the passed 'handlertable'
+-- Returns the passed 'handlertable'.
+-- AIO.AddHandlers uses AIO.RegisterEvent internally, so same name can not be used on both.
 handlertable = AIO.AddHandlers(name, handlertable)
 
 -- Adds a new callback function that is called if a message with the given
--- name is recieved and the message has the correct fmt if given.
--- fmt is a table of lua type strings: {"string", "table", "number", ...}
--- All parameters the sender sends in the message will be passed to func when called
-AIO.RegisterEvent(name, func[, fmt])
+-- name is recieved. All parameters the sender sends in the message will
+-- be passed to func when called.
+-- Example message: AIO.Msg():Add(name, ...):Send()
+-- AIO.AddHandlers uses AIO.RegisterEvent internally, so same name can not be used on both.
+AIO.RegisterEvent(name, func)
 
 -- Adds a new function that is called when the initial message is sent to the player.
 -- The function is called before sending and the initial message is passed to it
 -- along with the player if available: func(msg[, player])
 -- In the function you can modify the passed msg and/or return a new one to be
--- used as initial message. Only for server side.
+-- used as initial message. Only on server side.
+-- This can be used to send for example initial values (like player stats) for the addons.
+-- If dynamic loading is preferred, you can use the messaging API to request the values
+-- on demand also.
 AIO.AddOnInit(func)
 
 -- Key is a key for a variable in the global table _G.
 -- The variable is stored when the player logs out and will be restored
 -- when he logs back in before the addon codes are run.
--- These variables are account bound
+-- These variables are account bound.
+-- Only exists on client side and you should call it only once per key.
+-- All saved data is saved to client side.
 AIO.AddSavedVar(key)
 
 -- Key is a key for a variable in the global table _G.
 -- The variable is stored when the player logs out and will be restored
 -- when he logs back in before the addon codes are run.
 -- These variables are character bound.
+-- Only exists on client side and you should call it only once per key.
+-- All saved data is saved to client side.
 AIO.AddSavedVarChar(key)
 
--- Makes the addon frame save it's position over relog.
+-- Makes the addon frame save it's position and restore it on login.
 -- If char is true, the position saving is character bound, otherwise account bound.
--- Only exists on client side and you only call it once per frame.
+-- Only exists on client side and you should call it only once per frame.
+-- All saved data is saved to client side.
 AIO.SavePosition(frame[, char])
-```
 
-```lua
+-- AIO message class:
 -- Creates and returns a new AIO message that you can append stuff to and send to
 -- client or server. Example: AIO.Msg():Add("MyHandlerName", param1, param2):Send(player)
 -- These messages handle all client-server communication.
 msg = AIO.Msg()
 
 -- The name is used to identify the handler function on receiving end.
--- A handler function registered with AIO.RegisterEvent(name, func[, fmt])
+-- A handler function registered with AIO.RegisterEvent(name, func)
 -- will be called on receiving end with the varargs.
 function msgmt:Add(name, ...)
 
@@ -114,7 +172,7 @@ msg = msg:Assemble()
 
 #Included dependencies
 You do not need to get these, they are already included
-- Lua serializer: https://github.com/Rochet2/LuaSerializer
+- Lua serializer: https://github.com/gvx/Smallfolk
 - Compression for string data: https://love2d.org/wiki/TLTools
 - Obfuscation for addon code: http://luasrcdiet.luaforge.net/
 - Sent addons' frame position saving: http://www.wowace.com/addons/libwindow-1-1/
