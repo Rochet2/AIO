@@ -12,8 +12,8 @@ Backlink: https://github.com/Rochet2/AIO
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
 
 #Commands
-There are some commands that may be useful.
-On client side use `/aio help` to see a list of them and on server side use `.aio help`
+There are some commands that may be useful.  
+On client side use `/aio help` to see a list of them. On server side use `.aio help` to see a list of them.
 
 #Safety
 The messaging between server and client is coded to be safe

@@ -214,7 +214,10 @@ local AIO_Compressed        = 'C'
 local AIO_Uncompressed      = 'U'
 local AIO_Prefix            = "AIO"
 AIO_Prefix = ssub((AIO_Prefix), 1, 16) -- shorten to max allowed
-local AIO_MsgLen = 255 -1 -#AIO_Prefix -1 -- remove \t, prefix, msg type indentifier
+local AIO_ServerPrefix = ssub(("S"..AIO_Prefix), 1, 16)
+local AIO_ClientPrefix = ssub(("C"..AIO_Prefix), 1, 16)
+assert(#AIO_ServerPrefix == #AIO_ClientPrefix)
+local AIO_MsgLen = 255 -1 -#AIO_ServerPrefix -1 -- remove \t, prefix, msg type indentifier
 
 -- AIO main table
 AIO =
@@ -316,10 +319,10 @@ end
 local function AIO_SendAddonMessage(msg, player)
     if AIO_SERVER then
         -- server -> client
-        player:SendAddonMessage(AIO_Prefix, msg, 7, player)
+        player:SendAddonMessage(AIO_ServerPrefix, msg, 7, player)
     else
         -- client -> server
-        SendAddonMessage(AIO_Prefix, msg, "WHISPER", UnitName("player"))
+        SendAddonMessage(AIO_ClientPrefix, msg, "WHISPER", UnitName("player"))
     end
 end
 
@@ -437,7 +440,7 @@ local preinitblocks = {}
 local function AIO_HandleBlock(player, data)
     local HandleName = data[2]
     assert(HandleName, "Invalid handle, no handle name")
-    
+
     if not AIO_SERVER and not AIO_INITED and (HandleName ~= 'AIO' or data[3] ~= 'Init') then
         print(not AIO_SERVER, not AIO_INITED, HandleName, data[3])
         -- store blocks received before initialization
@@ -445,7 +448,7 @@ local function AIO_HandleBlock(player, data)
         AIO_debug("Received block before Init:", HandleName, data[1], data[3])
         return
     end
-    
+
     local handledata = AIO_BLOCKHANDLES[HandleName]
     if not handledata then
         error("Unknown AIO block handle: '"..tostring(HandleName).."'")
@@ -474,7 +477,7 @@ local function _AIO_ParseBlocks(msg, player)
     if AIO_SERVER and AIO_TIMEOUT_INSTRUCTIONCOUNT > 0 then
         debug.sethook(AIO_Timeout, "", AIO_TIMEOUT_INSTRUCTIONCOUNT)
     end
-    
+
     AIO_debug("Received messagelength:", #msg)
 
     -- deserialize the message
@@ -482,13 +485,13 @@ local function _AIO_ParseBlocks(msg, player)
     if not data then
         return
     end
-    
+
     -- Handle parsing of all blocks
     for i = 1, #data do
         -- Using pcall here so errors wont stop handling other blocks in the msg
         AIO_pcall(AIO_HandleBlock, player, data[i])
     end
-    
+
     if AIO_SERVER and AIO_TIMEOUT_INSTRUCTIONCOUNT > 0 then
         debug.sethook()
     end
@@ -686,7 +689,7 @@ if AIO_SERVER then
         if timers[guid] then
             return
         end
-        
+
         -- make a new cooldown for init calling
         timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, AIO_UI_INIT_DELAY, 1) -- the timer here (AIO_UI_INIT_DELAY) is the min time in ms between inits the player can do
 
@@ -709,20 +712,20 @@ if AIO_SERVER then
                 addons[i] = data
             end
         end
-        
+
         local initmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION, #AIO_ADDONSORDER, addons, cached)
 
         for k,v in ipairs(AIO_INITHOOKS) do
             initmsg = v(initmsg, player) or initmsg
         end
-        
+
         initmsg:Send(player)
     end
 
     -- An addon message event handler for the lua engine
     -- If the message data is correct, move the message forward to the AIO message handler.
     local function ONADDONMSG(event, sender, Type, prefix, msg, target)
-        if prefix == AIO_Prefix and tostring(sender) == tostring(target) and #msg < 510 then
+        if prefix == AIO_ClientPrefix and tostring(sender) == tostring(target) and #msg < 510 then
             AIO_HandleIncomingMsg(msg, sender)
         end
     end
@@ -774,7 +777,7 @@ else
     -- A client side event handler
     -- Passes the incoming message to AIO message handler if it is valid
     local function ONADDONMSG(self, event, prefix, msg, Type, sender)
-        if prefix == AIO_Prefix then
+        if prefix == AIO_ServerPrefix then
             if event == "CHAT_MSG_ADDON" and sender == UnitName("player") then
                 -- Normal AIO message handling from addon messages
                 AIO_HandleIncomingMsg(msg, sender)
@@ -807,11 +810,11 @@ else
             print("You have AIO version "..AIO_VERSION.." and the server uses "..(version or "nil")..". Get the same version")
             return
         end
-        
+
         assert(type(N) == 'number')
         assert(type(addons) == 'table')
         assert(type(cached) == 'table')
-        
+
         local validAddons = {}
         for i = 1, N do
             local name
@@ -825,21 +828,21 @@ else
             else
                 error("Unexpected behavior, try /aio reset")
             end
-            
+
             AIO_pcall(RunAddon, name)
         end
-        
+
         local invalidAddons = {}
         for name, data in pairs(AIO_sv_Addons) do
             if not validAddons[name] then
                 invalidAddons[#invalidAddons+1] = name
             end
         end
-        
+
         for i = 1, #invalidAddons do
             AIO_sv_Addons[invalidAddons[i]] = nil
         end
-        
+
         AIO_INITED = true
         print("Initialized AIO version "..AIO_VERSION..". Type '/aio help' for commands")
     end
