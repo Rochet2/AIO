@@ -11,6 +11,15 @@ Backlink: https://github.com/Rochet2/AIO
 - Copy the __contents__ of `AIO_Server` to your `server_root/lua_scripts/`
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
 
+#About
+AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.
+When an addon added to AIO as an addon to send to the client, it will be processed (depending on settings, obfuscated and compressed) and stored in memory to wait for sending to players.
+All addons that are added are executed on client side in the order they were added to AIO.
+AIO is using a cache system to cache the addon codes to client side so they dont need to be sent on every login.
+Only if an addon is changed or added the new addon is sent again. The user can also clear his local AIO cache in which case the addons will be sent again.
+The full addon code sent to client is executed on client as is. The code has full access to the client side addon API.
+The client-server messaging is handled with an AIO message helper class. It holds and manages the data to send over.
+
 #Commands
 There are some commands that may be useful.  
 On client side use `/aio help` to see a list of them. On server side use `.aio help` to see a list of them.
@@ -51,6 +60,12 @@ There are some client side commands. Use the slash command `/aio` ingame to see 
 ```lua
 -- AIO is required this way due to server and client differences with require function
 local AIO = AIO or require("AIO")
+
+-- Returns true if we are on server side, false if we are on client side
+isServer = AIO.IsServer()
+
+-- Returns AIO version - note the type is not guaranteed to be a number
+version = AIO.GetVersion()
 
 -- Adds the file at given path to files to send to players if called on server side.
 -- The addon code is trimmed according to settings in AIO.lua.

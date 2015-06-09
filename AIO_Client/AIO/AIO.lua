@@ -23,6 +23,12 @@
 -- AIO is required this way due to server and client differences with require function
 local AIO = AIO or require("AIO")
 
+-- Returns true if we are on server side, false if we are on client side
+isServer = AIO.IsServer()
+
+-- Returns AIO version - note the type is not guaranteed to be a number
+version = AIO.GetVersion()
+
 -- Adds the file at given path to files to send to players if called on server side.
 -- The addon code is trimmed according to settings in AIO.lua.
 -- The addon is cached on client side and will be updated only when needed.
@@ -159,6 +165,8 @@ local AIO_ENABLE_PCALL        = true -- default true
 -- make sure you have default Eluna extensions in place.
 -- Server side only
 local AIO_ENABLE_TRACEBACK    = false -- default false
+-- prints all messages
+local AIO_ENABLE_MSGPRINT     = false -- default false
 
 -- Max limit of single message packets from client to server, default 5
 -- (avoids overflow from bad user) Note that packets are about 250 characters long,
@@ -245,6 +253,16 @@ local AIO_BLOCKHANDLES = {}
 -- you should add all addon code here with AIO.AddAddon
 local AIO_ADDONSORDER = {}
 
+-- Returns true if we are on server
+function AIO.IsServer()
+    return AIO_SERVER
+end
+
+-- Returns AIO version - note the type is not guaranteed to be a number
+function AIO.GetVersion()
+    return AIO_VERSION
+end
+
 -- Resets AIO saved variables on client side
 local AIO_RESET
 if not AIO_SERVER then
@@ -317,6 +335,9 @@ end
 -- Selects a method to send the string to the player depending on whether
 -- running on client or server side. From client to server no player needed
 local function AIO_SendAddonMessage(msg, player)
+    if AIO_ENABLE_MSGPRINT then
+        print(msg)
+    end
     if AIO_SERVER then
         -- server -> client
         player:SendAddonMessage(AIO_ServerPrefix, msg, 7, player)
@@ -442,7 +463,6 @@ local function AIO_HandleBlock(player, data)
     assert(HandleName, "Invalid handle, no handle name")
 
     if not AIO_SERVER and not AIO_INITED and (HandleName ~= 'AIO' or data[3] ~= 'Init') then
-        print(not AIO_SERVER, not AIO_INITED, HandleName, data[3])
         -- store blocks received before initialization
         preinitblocks[#preinitblocks+1] = data
         AIO_debug("Received block before Init:", HandleName, data[1], data[3])
@@ -479,6 +499,9 @@ local function _AIO_ParseBlocks(msg, player)
     end
 
     AIO_debug("Received messagelength:", #msg)
+    if AIO_ENABLE_MSGPRINT then
+        print(msg)
+    end
 
     -- deserialize the message
     local data = AIO_pcall(Smallfolk.loads, msg, #msg)
@@ -628,14 +651,14 @@ if AIO_SERVER then
         return AIO.Msg():Add(name, handlername, ...):Send(player)
     end
 
-    local blrot = bit32.lrotate -- requires bit lib (lua 5.2)
-    local sbyte = string.byte
+    local lshift = (bit32 and bit32.lrotate) or (bit and bit.lshift) -- requires bit lib or lua 5.2
+    local sbyte = strbyte or string.byte
     -- Calculates a checksum for the string and returns it
     local function AIO_crc(code)
         assert(type(code) == 'string', "#1 must be a string")
         local sum = 0
         for i = 1, #code do
-            sum = blrot(sum, 1)
+            sum = lshift(sum, 1)
             sum = sum + sbyte(code, i)
         end
         return sum
@@ -1044,6 +1067,11 @@ helps.pcall = "toggles using pcall"
 function cmds.pcall(player)
     AIO_ENABLE_PCALL = not AIO_ENABLE_PCALL
     pprint(player, "using pcall is now", AIO_ENABLE_PCALL and "on" or "off")
+end
+helps.printio = "toggles printing all sent and received messages"
+function cmds.printio(player)
+    AIO_ENABLE_MSGPRINT = not AIO_ENABLE_MSGPRINT
+    pprint(player, "printing IO is now", AIO_ENABLE_MSGPRINT and "on" or "off")
 end
 
 return AIO
