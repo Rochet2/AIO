@@ -26,7 +26,7 @@ frameAttributes:SetScript("OnDragStop", frameAttributes.StopMovingOrSizing)
 frameAttributes:Hide()
 
 -- Close button
-local buttonAttributesClose = CreateFrame("Button", "buttonAttributesClose", frameAttributes) -- , "UIPanelButtonAttributesClose")
+local buttonAttributesClose = CreateFrame("Button", "buttonAttributesClose", frameAttributes, "UIPanelCloseButton")
 buttonAttributesClose:SetPoint("TOPRIGHT", -5, -5)
 buttonAttributesClose:EnableMouse(true)
 buttonAttributesClose:SetSize(27, 27)

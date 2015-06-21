@@ -7,9 +7,10 @@ Backlink: https://github.com/Rochet2/AIO
 
 #Installation
 - Make sure you have [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna)
-- Copy the __contents__ of `AIO_Client` to your `WoW_installation_folder/Interface/AddOns/`
-- Copy the __contents__ of `AIO_Server` to your `server_root/lua_scripts/`
+- Copy the `AIO_Client` to your `WoW_installation_folder/Interface/AddOns/`
+- Copy the `AIO_Server` to your `server_root/lua_scripts/`
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
+- When developing an addon it is recommended to have AIO_ENABLE_PCALL off and sometimes you may need AIO_ENABLE_DEBUG_MSGS on to see if AIO blocks your code for some safety reason.
 
 #About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.

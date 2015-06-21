@@ -154,6 +154,8 @@ assert(not AIO, "AIO is already loaded. Possibly different versions!")
 -- Server-Client messaging config:
 ----------------------------------
 
+-- When developing an addon it is advised to set AIO_ENABLE_PCALL false and leave others as is if not needed.
+
 -- Enables some additional prints for debugging
 local AIO_ENABLE_DEBUG_MSGS   = false -- default false
 -- Enables pcall to silence errors and continue running normally when an error occurs
@@ -162,8 +164,8 @@ local AIO_ENABLE_DEBUG_MSGS   = false -- default false
 -- Erroring out can be useful for debugging scripts
 local AIO_ENABLE_PCALL        = true -- default true
 -- Enables using debug.traceback as the error handler to help locating errors
--- make sure you have default Eluna extensions in place.
--- Server side only
+-- on server side. Make sure you have default Eluna extensions in place.
+-- On client side uses _ERRORMESSAGE function to output errors with trace.
 local AIO_ENABLE_TRACEBACK    = false -- default false
 -- prints all messages
 local AIO_ENABLE_MSGPRINT     = false -- default false
@@ -212,7 +214,7 @@ unpack = unpack or table.unpack -- unpack place varies with lua 5.1 and 5.2
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1
+local AIO_VERSION = 1.5
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = 'S'
 local AIO_LongMsg           = 'L'
@@ -314,7 +316,11 @@ local function AIO_pcall(f, ...)
         if AIO_SERVER then
             AIO_debug(data[3])
         else
-            (_ERRORMESSAGE or print)(data[3])
+            if AIO_ENABLE_TRACEBACK then
+                _ERRORMESSAGE(data[3])
+            else
+                print(data[3])
+            end
         end
         return
     end
@@ -476,6 +482,10 @@ local function AIO_HandleBlock(player, data)
 
     -- found the block handler and arguments match the format.
     -- call the block handler
+    if AIO_SERVER and data[1] > 15 then
+        error("Received AIO block with over 15 arguments. Try using tables instead")
+        return
+    end
     handledata(player, unpack(data, 3, data[1]+2))
 
     if not AIO_SERVER and AIO_INITED and HandleName ~= 'AIO' and data[3] ~= 'Init' then
@@ -490,11 +500,13 @@ local function AIO_HandleBlock(player, data)
 end
 
 -- Extracts blocks from assembled addon messages
+local curmsg = ''
 local function AIO_Timeout()
-    error(string.format("AIO Timeout. Your code ran over %s instructions", ''..AIO_TIMEOUT_INSTRUCTIONCOUNT))
+    error(string.format("AIO Timeout. Your code ran over %s instructions with message:\n%s", ''..AIO_TIMEOUT_INSTRUCTIONCOUNT, (curmsg or 'nil')))
 end
 local function _AIO_ParseBlocks(msg, player)
     if AIO_SERVER and AIO_TIMEOUT_INSTRUCTIONCOUNT > 0 then
+        curmsg = msg
         debug.sethook(AIO_Timeout, "", AIO_TIMEOUT_INSTRUCTIONCOUNT)
     end
 
@@ -897,7 +909,7 @@ else
 
     -- message to request initialization of UI
     function frame:OnEvent(event, addon)
-        if event == "ADDON_LOADED" and addon == "AIO" then
+        if event == "ADDON_LOADED" and addon == "AIO_Client" then
             -- Our saved variables are ready at this point. If there is no save, they will be nil
             -- Must be before any other addon action like sending init request
             if type(AIO_sv) ~= 'table' then
@@ -1045,18 +1057,17 @@ function cmds.help(player)
         pprint(player, (AIO_SERVER and '.' or '/').."aio "..k.." - "..(helps[k] or "no info"))
     end
 end
-if AIO_SERVER then
-    helps.trace = "toggles using debug.traceback"
-    function cmds.trace(player)
-        AIO_ENABLE_TRACEBACK = not AIO_ENABLE_TRACEBACK
-        pprint(player, "using trace is now", AIO_ENABLE_TRACEBACK and "on" or "off")
-    end
-else
+if not AIO_SERVER then
     helps.reset = "resets local AIO cache - clears saved addons and their saved variables and reloads the UI"
     function cmds.reset()
         AIO_RESET()
         ReloadUI()
     end
+end
+helps.trace = "toggles using debug.traceback or _ERRORMESSAGE"
+function cmds.trace(player)
+    AIO_ENABLE_TRACEBACK = not AIO_ENABLE_TRACEBACK
+    pprint(player, "using trace is now", AIO_ENABLE_TRACEBACK and "on" or "off")
 end
 helps.debug = "toggles showing of debug messages"
 function cmds.debug(player)
