@@ -19,12 +19,14 @@ function dump_type:number(nmemo, memo, acc)
 end
 
 function dump_type:table(nmemo, memo, acc)
+    --[[
 	if memo[self] then
 		acc[#acc + 1] = '@'
 		acc[#acc + 1] = tostring(memo[self])
 		return nmemo
 	end
 	nmemo = nmemo + 1
+    ]]
 	memo[self] = nmemo
 	acc[#acc + 1] = '{'
 	local nself = #self
@@ -175,6 +177,7 @@ local expect_object_head = {
 			end
 		end
 	end,
+    --[[
 	['@'] = function(string, i, tables)
 		local match = string:match('^%d+', i)
 		local ref = tonumber(match)
@@ -183,6 +186,7 @@ local expect_object_head = {
 		end
 		invalid(i)
 	end,
+    ]]
 }
 expect_object_head['1'] = expect_object_head['0']
 expect_object_head['2'] = expect_object_head['0']

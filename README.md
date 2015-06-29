@@ -10,7 +10,7 @@ Backlink: https://github.com/Rochet2/AIO
 - Copy the `AIO_Client` to your `WoW_installation_folder/Interface/AddOns/`
 - Copy the `AIO_Server` to your `server_root/lua_scripts/`
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
-- When developing an addon it is recommended to have AIO_ENABLE_PCALL off and sometimes you may need AIO_ENABLE_DEBUG_MSGS on to see if AIO blocks your code for some safety reason.
+- When developing an addon it is recommended to have AIO_ENABLE_PCALL off and sometimes you may need AIO_ENABLE_DEBUG_MSGS on to see some information about what is going on.
 
 #About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.
@@ -28,13 +28,13 @@ On client side use `/aio help` to see a list of them. On server side use `.aio h
 #Safety
 The messaging between server and client is coded to be safe
 
-- server can send any length and type data to client - no restrictions
-- client can only send a fixed amount of data that you can set in AIO.lua file
+- you can limit the cache sizes, delays and other in AIO.lua
 - data received from client is only deserialized - no compressions etc.
 - serialization library is not using loadstring to make deserialization safe
-- when receiving messages the code is ran in pcall to prevent user sent data creating errors. Set debug messages on in AIO.lua to see all errors on server side as well
+- when receiving messages the code is run in pcall to prevent all user sent data creating errors. Set debug messages on in AIO.lua to see all errors on server side as well
 - the code is only as safe as you make it. In your own codes make sure all data the client sends to server and you use is the type you expect it to be and is in the range you expect it to be in. (example: math.huge is a number type, but not a real number)
 - make sure your code has asserts in place and is fast. There is a tweakable timeout in AIO.lua just to be sure that the server will not hang if you happen to write bad or abusable code or if a bad user finds a way to hang the system
+- Do check the AIO.lua settings and tweak them to your needs for both client and server respectively. This is important to fend off bad users and make things work better with your setup.
 
 #Handlers
 AIO has a few handlers by default that are used for the internal codes and you can
@@ -189,13 +189,16 @@ msg = msg:Assemble()
 #Included dependencies
 You do not need to get these, they are already included
 - Lua serializer: https://github.com/gvx/Smallfolk
+- Lua bit lib: https://github.com/davidm/lua-bit-numberlua/
+- Lua queue with modifications: http://www.lua.org/pil/11.4.html
 - Compression for string data: https://love2d.org/wiki/TLTools
 - Obfuscation for addon code: http://luasrcdiet.luaforge.net/
 - Sent addons' frame position saving: http://www.wowace.com/addons/libwindow-1-1/
 
 #Special thanks
 - Kenuvis < [Gate](http://www.ac-web.org/forums/showthread.php?148415-LUA-Gate-Project), [ElunaGate](https://github.com/ElunaLuaEngine/ElunaGate) >
-- Laurea (alexeng) < https://github.com/Alexeng >
+- Laurea/alexeng/Kyromyr < https://github.com/Alexeng, https://github.com/Kyromyr>
 - Foereaper < https://github.com/Foereaper >
+- SaiF < https://github.com/SaiFi0102 >
 - Eluna team < https://github.com/ElunaLuaEngine/Eluna#team >
 - Lua contributors < http://www.lua.org/ >
