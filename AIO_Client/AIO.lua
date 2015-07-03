@@ -227,7 +227,7 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.6
+local AIO_VERSION = 1.7
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
@@ -237,7 +237,13 @@ AIO_Prefix = ssub((AIO_Prefix), 1, 16) -- shorten to max allowed
 local AIO_ServerPrefix = ssub(("S"..AIO_Prefix), 1, 16)
 local AIO_ClientPrefix = ssub(("C"..AIO_Prefix), 1, 16)
 assert(#AIO_ServerPrefix == #AIO_ClientPrefix)
-local AIO_MsgLen = 255 -1 -#AIO_ServerPrefix -#AIO_ShortMsg -- remove \t, prefix, msg ID
+-- Client can send only 255 max size messages, but server can send more
+-- on different patches the limit varies, on 3.3.5 it is exactly 3004 and on cataclysm 2^23
+-- thus we use 2560 that is about 10 times more data and below both max values. Too high value can crash client.
+-- Change if you need to :)
+local AIO_MsgLen = (AIO_SERVER and 2560 or 255) -1 -#AIO_ServerPrefix -#AIO_ShortMsg -- remove \t, prefix, msg ID
+local MSG_MIN = 1
+local MSG_MAX = 2^16-767
 
 -- AIO main table
 AIO =
@@ -271,15 +277,11 @@ local LuaSrcDiet
 local NewQueue = NewQueue or require("queue")
 local Smallfolk = Smallfolk or require("smallfolk")
 local TLibCompress = AIO_MSG_COMPRESS and (TLibCompress or require("LibCompress"))
-local Nbit = Nbit or require("numberlua")
 if AIO_SERVER then
     LuaSrcDiet = require("LuaSrcDiet")
 else
     LibWindow = LibStub("LibWindow-1.1")
 end
-
-local lshift = (bit32 and bit32.lshift) or (bit and bit.lshift) or (Nbit and Nbit.lshift) or lshift
-local rshift = (bit32 and bit32.rshift) or (bit and bit.rshift) or (Nbit and Nbit.rshift) or rshift
 
 -- Returns true if we are on server
 function AIO.IsServer()
@@ -379,12 +381,75 @@ local function AIO_ReadFile(path)
     return str
 end
 
+-- player data handler
+local plrdata = {}
+local removeque = NewQueue()
+local function RemoveData(guid, msgid)
+    local pdata = plrdata[guid]
+    if pdata then
+        if msgid then
+            local data = pdata[msgid]
+            if data then
+                pdata[msgid] = nil
+                pdata.ramque:gettable()[data.ramquepos] = nil
+                removeque:gettable()[data.remquepos] = nil
+            end
+        else
+            local que = pdata.ramque:gettable()
+            local l, r = pdata.ramque:getrange()
+            for i = l, r do
+                if que[i] then
+                    removeque:gettable()[que[i].remquepos] = nil
+                end
+            end
+            plrdata[guid] = nil
+        end
+    end
+end
+local function ProcessRemoveQue()
+    if removeque:empty() then
+        return
+    end
+    local now = AIO_GetTime()
+    local l, r = removeque:getrange()
+    for i = l, r do
+        local v = removeque:popleft()
+        if v then
+            if AIO_GetTimeDiff(now, v.stamp) < AIO_MSG_CACHE_TIME then
+                AIO_debug("removing outdated incomplete message")
+                removeque:pushleft(v)
+                break
+            end
+            RemoveData(v.guid, v.id)
+        end
+    end
+end
+if AIO_SERVER then
+    CreateLuaEvent(ProcessRemoveQue, AIO_MSG_CACHE_DELAY, 0)
+else
+    local frame = CreateFrame("Frame")
+    local timer = AIO_MSG_CACHE_DELAY
+    local function ONUPDATE(self, diff)
+        if timer > diff then
+            timer = timer - diff
+        else
+            ProcessRemoveQue()
+            timer = AIO_MSG_CACHE_DELAY
+        end
+    end
+    frame:SetScript("OnUpdate", ONUPDATE)
+end
+-- Erase data on logout
+if AIO_SERVER then
+    local function Erase(event, player)
+        RemoveData(player:GetGUIDLow())
+    end
+    RegisterPlayerEvent(4, Erase)
+end
+
 -- Selects a method to send the string to the player depending on whether
 -- running on client or server side. From client to server no player needed
 local function AIO_SendAddonMessage(msg, player)
-    if AIO_ENABLE_MSGPRINT then
-        print(msg)
-    end
     if AIO_SERVER then
         -- server -> client
         player:SendAddonMessage(AIO_ServerPrefix, msg, 7, player)
@@ -397,14 +462,14 @@ end
 -- Sends a string to given players (vararg).
 -- Can have one or more receiver players (no receivers when sending from client -> server)
 -- Splits too long messages into smaller pieces
-local MSG_MIN = 1
-local MSG_MAX = 2^16-767
-local MSG_GUID = MSG_MIN
 local function AIO_Send(msg, player, ...)
     assert(type(msg) == "string", "#1 string expected")
     assert(not AIO_SERVER or type(player) == 'userdata', "#2 player expected")
 
     AIO_debug("Sending message length:", #msg)
+    if AIO_ENABLE_MSGPRINT then
+        print("sent:", msg)
+    end
 
     -- split message to 255 character packets if needed (send long message)
     if #msg <= AIO_MsgLen then
@@ -412,6 +477,16 @@ local function AIO_Send(msg, player, ...)
         AIO_SendAddonMessage(AIO_ShortMsg..msg, player)
     else
         -- Send long > AIO_MsgLen msg
+
+        local guid = AIO_SERVER and player:GetGUIDLow() or 1
+        if not plrdata[guid] then
+            plrdata[guid] = {
+                stored = 0,
+                ramque = NewQueue(),
+                MSG_GUID = MSG_MIN,
+            }
+        end
+        local pdata = plrdata[guid]
 
         -- the chars can not contain \0
         -- 16bit -> Message ID -- 0 reserved for identifying short msg
@@ -424,13 +499,13 @@ local function AIO_Send(msg, player, ...)
         -- Calculate amount of messages to send
         local parts = ceil(#msg / msglen)
         -- assemble header
-        local header = AIO_16tostring(MSG_GUID)..AIO_16tostring(parts)
+        local header = AIO_16tostring(pdata.MSG_GUID)..AIO_16tostring(parts)
 
         -- update guid
-        if MSG_GUID >= MSG_MAX then
-            MSG_GUID = MSG_MIN
+        if pdata.MSG_GUID >= MSG_MAX then
+            pdata.MSG_GUID = MSG_MIN
         else
-            MSG_GUID = MSG_GUID+1
+            pdata.MSG_GUID = pdata.MSG_GUID+1
         end
 
         -- send messages
@@ -575,7 +650,7 @@ local function _AIO_ParseBlocks(msg, player)
 
     AIO_debug("Received messagelength:", #msg)
     if AIO_ENABLE_MSGPRINT then
-        print(msg)
+        print("received:", msg)
     end
 
     -- deserialize the message
@@ -600,62 +675,6 @@ end
 
 -- Handles cleaning and assembling the messages received
 -- Messages can be 255 characters long, so big messages will be split
-local plrdata = {}
-local removeque = NewQueue()
-local function RemoveData(guid, msgid)
-    local pdata = plrdata[guid]
-    if pdata then
-        if msgid then
-            local data = pdata[msgid]
-            if data then
-                pdata[msgid] = nil
-                pdata.ramque:gettable()[data.ramquepos] = nil
-                removeque:gettable()[data.remquepos] = nil
-            end
-        else
-            local que = pdata.ramque:gettable()
-            local l, r = pdata.ramque:getrange()
-            for i = l, r do
-                if que[i] then
-                    removeque:gettable()[que[i].remquepos] = nil
-                end
-            end
-            plrdata[guid] = nil
-        end
-    end
-end
-local function ProcessRemoveQue()
-    if removeque:empty() then
-        return
-    end
-    local now = AIO_GetTime()
-    local l, r = removeque:getrange()
-    for i = l, r do
-        local v = removeque:popleft()
-        if v then
-            if AIO_GetTimeDiff(now, v.stamp) < AIO_MSG_CACHE_TIME then
-                removeque:pushleft(v)
-                break
-            end
-            RemoveData(v.guid, v.id)
-        end
-    end
-end
-if AIO_SERVER then
-    CreateLuaEvent(ProcessRemoveQue, AIO_MSG_CACHE_DELAY, 0)
-else
-    local frame = CreateFrame("Frame")
-    local timer = AIO_MSG_CACHE_DELAY
-    local function ONUPDATE(self, diff)
-        if timer > diff then
-            timer = timer - diff
-        else
-            ProcessRemoveQue()
-            timer = AIO_MSG_CACHE_DELAY
-        end
-    end
-    frame:SetScript("OnUpdate", ONUPDATE)
-end
 local function _AIO_HandleIncomingMsg(msg, player)
     -- Received a long message part (msg split into 255 character parts)
     local msgid = ssub(msg, 1,2)
@@ -693,6 +712,7 @@ local function _AIO_HandleIncomingMsg(msg, player)
         plrdata[guid] = {
             stored = 0,
             ramque = NewQueue(),
+            MSG_GUID = MSG_MIN,
         }
     end
     local pdata = plrdata[guid]
@@ -741,7 +761,7 @@ local function _AIO_HandleIncomingMsg(msg, player)
         -- if still error even though tried freeing all memory possible to free
         -- throw error and clear cache
         if pdata.stored > AIO_MSG_CACHE_SPACE then
-            plrdata[guid] = nil
+            RemoveData(guid)
             error("AIO_MSG_CACHE_SPACE is too small for received message")
             return
         end
@@ -750,24 +770,12 @@ local function _AIO_HandleIncomingMsg(msg, player)
     -- Has all parts, process
     if #data.parts == data.parts.n then
         local cat = tconcat(data.parts)
-        if pdata.stored - #cat <= 0 then
-            RemoveData(guid)
-        else
-            RemoveData(guid, messageId)
-        end
+        RemoveData(guid, messageId)
         AIO_ParseBlocks(cat, player)
     end
 end
 local function AIO_HandleIncomingMsg(msg, player)
     AIO_pcall(_AIO_HandleIncomingMsg, msg, player)
-end
-
--- Erase data on logout
-if AIO_SERVER then
-    local function Erase(event, player)
-        RemoveData(player:GetGUIDLow())
-    end
-    RegisterPlayerEvent(4, Erase)
 end
 
 -- Adds a new callback function for AIO that is called if
@@ -828,36 +836,24 @@ if AIO_SERVER then
         return AIO.Msg():Add(name, handlername, ...):Send(player)
     end
 
-    -- Calculates a checksum for the string and returns it
-    local lrotate = (bit32 and bit32.lrotate) or (bit and bit.lrotate) or (Nbit and Nbit.lrotate) or lrotate
-    assert(lrotate, "no bit lrotate function")
-    local function AIO_crc(code)
-        assert(type(code) == 'string', "#1 must be a string")
-        local sum = 0
-        for i = 1, #code do
-            sum = lrotate(sum, 1)
-            sum = sum + sbyte(code, i)
-        end
-        return sum
-    end
-
     -- Adds the addon code to the sent addons on login.
     -- The addon code is trimmed according to settings at top of this file.
     -- The addon is cached on client side and will be updated if needed.
     -- name is an unique ID for the addon, usually you can use the file name or addon name there
     -- Do note that short names are better since they are sent back and forth to indentify files
+    local crc32 = require("crc32lua").crc32
     function AIO.AddAddonCode(name, code)
         assert(type(name) == 'string', "#1 string expected")
         assert(type(code) == 'string', "#2 string expected")
         if AIO_CODE_OBFUSCATE then
-            code = LuaSrcDiet(code)
+            code = LuaSrcDiet(code, 3)
         end
         if AIO_MSG_COMPRESS then
             code = AIO_Compressed..assert(TLibCompress.CompressLZW(code))
         else
             code = AIO_Uncompressed..code
         end
-        AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {name=name, crc=AIO_crc(code), code=code}
+        AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {name=name, crc=crc32(code), code=code}
     end
 
     -- Adds a new function that is called when an init message
@@ -1086,7 +1082,7 @@ else
         if event == "ADDON_LOADED" and addon == "AIO_Client" then
             -- Register addon channel on cata+
             local _,_,_, tocversion = GetBuildInfo()
-            if tocversion and tocversion >= 40000 and RegisterAddonMessagePrefix then
+            if tocversion and tocversion >= 40100 and RegisterAddonMessagePrefix then
                 RegisterAddonMessagePrefix("C"..AIO_Prefix)
             end
 
