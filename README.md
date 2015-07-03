@@ -189,7 +189,7 @@ msg = msg:Assemble()
 #Included dependencies
 You do not need to get these, they are already included
 - Lua serializer: https://github.com/gvx/Smallfolk
-- Lua bit lib: https://github.com/davidm/lua-bit-numberlua/
+- Lua crc32: https://github.com/davidm/lua-digest-crc32lua
 - Lua queue with modifications: http://www.lua.org/pil/11.4.html
 - Compression for string data: https://love2d.org/wiki/TLTools
 - Obfuscation for addon code: http://luasrcdiet.luaforge.net/
