@@ -973,7 +973,12 @@ else
     -- Makes the frame save it's position over relog
     -- If char is true, the position saving is character bound, otherwise account bound
     function AIO.SavePosition(frame, char)
-        LibWindow.RegisterConfig(frame, char and AIO_FRAMEPOSITIONSCHAR or AIO_FRAMEPOSITIONS)
+        assert(frame:GetName(), "Called AIO.SavePosition on a nameless frame")
+        local store = char and AIO_FRAMEPOSITIONSCHAR or AIO_FRAMEPOSITIONS
+        if not store[frame:GetName()] then
+            store[frame:GetName()] = {}
+        end
+        LibWindow.RegisterConfig(frame, store[frame:GetName()])
         LibWindow.RestorePosition(frame)
         LibWindow.SavePosition(frame)
         table.insert(AIO_SAVEDFRAMES, frame)
