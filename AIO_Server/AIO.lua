@@ -655,7 +655,8 @@ local function _AIO_ParseBlocks(msg, player)
 
     -- deserialize the message
     local data = AIO_pcall(Smallfolk.loads, msg, #msg)
-    if not data then
+    if not data or type(data) ~= 'table' then
+        AIO_debug("Received invalid message - data not a table")
         return
     end
 
@@ -895,11 +896,13 @@ if AIO_SERVER then
             return
         end
 
+        local istable = type(clientdata) == 'table'
+
         local addons = {}
         local cached = {}
         for i = 1, #AIO_ADDONSORDER do
             local data = AIO_ADDONSORDER[i]
-            local clientcrc = clientdata[data.name]
+            local clientcrc = istable and clientdata[data.name] or nil
             if clientcrc and clientcrc == data.crc then
                 -- valid - send name only
                 cached[i] = data.name
@@ -1155,7 +1158,7 @@ else
                 end
             end
             frame:SetScript("OnUpdate", ONUPDATE)
-            initmsg:Send()
+            -- initmsg:Send()
         elseif event == "PLAYER_LOGOUT" then
             -- On logout we must store all global namespace to saved vars
             AIO_sv = {} -- discard vars that no longer exist
@@ -1177,7 +1180,6 @@ end
 
 -- Adds all handlers from AIO_HANDLERS for the "AIO" msg handler
 AIO.AddHandlers("AIO", AIO_HANDLERS)
-
 
 -- Tables holding the command functions and the help messages
 -- both are indexed by the command name. See below for how to add a command and help
