@@ -528,7 +528,18 @@ local function process_file(srcfl, destfl)
   print()
 end
 
-local function process_code(code)
+local function process_code(code, config)
+    option.QUIET = true
+    if config == 1 then
+        set_options(DEFAULT_CONFIG)
+    elseif config == 2 then
+        set_options(BASIC_CONFIG)
+    elseif config == 3 then
+        set_options(MAXIMUM_CONFIG)
+    else
+        set_options(NONE_CONFIG)
+    end
+
   local function print(...)             -- handle quiet option
     if option.QUIET then return end
     _G.print(...)
@@ -795,6 +806,4 @@ end
 
 -- end of script
 
-option.QUIET = true
-set_options(MAXIMUM_CONFIG)
 return process_code
