@@ -19,6 +19,7 @@ local schar = string.char
 local ssub = string.sub
 local sbyte = string.byte
 local mmodf = math.modf
+local floor = floor or math.floor
 
 local function encode(x)
     local bytes = {}
@@ -29,10 +30,10 @@ local function encode(x)
         bytes[#bytes + 1] = xmod
     until x <= 0
     if #bytes == 1 and bytes[1] > 0 and bytes[1] < 250 then
-        return schar(bytes[1])
+        return schar(floor(bytes[1]))
     else
         for i = 1, #bytes do bytes[i] = bytes[i] + 1 end
-        return schar(256 - #bytes, unpack(bytes))
+        return schar(floor(256 - #bytes, unpack(bytes)))
     end
 end
 
