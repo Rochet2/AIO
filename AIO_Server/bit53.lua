@@ -2,7 +2,8 @@
 -- Using load to avoid errors when having this file in earlier lua sources than 5.3
 
 -- check that lua version is higher or equal to 5.3
-if tonumber(_VERSION:match("%d+%.?%d*")) >= 5.3 then
+local MIN_LUA_VER = 5.3
+if tonumber(_VERSION:match("%d+%.?%d*")) >= MIN_LUA_VER then
     return assert(assert(load( [[
         local bit53 = {}
         function bit53.band(a,b)

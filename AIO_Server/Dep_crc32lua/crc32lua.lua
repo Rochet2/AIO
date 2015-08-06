@@ -141,7 +141,7 @@ local function requireany(...)
   error(table.concat(errs, '\n'), 2)
 end
 
-local bit, name_ = requireany('bit53', 'bit', 'bit32', 'bit.numberlua')
+local bit, name_ = requireany('bit', 'bit32', 'bit.numberlua', 'bit53')
 local bxor = bit.bxor
 local bnot = bit.bnot
 local band = bit.band
