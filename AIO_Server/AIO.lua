@@ -227,7 +227,7 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.7
+local AIO_VERSION = 1.71
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
@@ -820,7 +820,7 @@ end
 -- Returns true if addon was added
 function AIO.AddAddon(path, name)
     if AIO_SERVER then
-        path = path or debug.getinfo(2, 'S').short_src
+        path = path or debug.getinfo(2, 'S').source:sub(2)
         name = name or match(path, "([^/]*)$")
         local code = AIO_ReadFile(path)
         AIO.AddAddonCode(name, code)
