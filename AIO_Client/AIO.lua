@@ -196,7 +196,7 @@ local AIO_ERROR_LOG     = true
 -- Note that compression is not used for messaging in general due to it's slowness
 -- It is assumed that messages sent around normally are not thousands of characters long
 -- Server side only
-local AIO_MSG_COMPRESS    = true
+local AIO_MSG_COMPRESS    = false
 -- Setting to enable and disable obfuscation for code to reduce size, default true
 -- only used on server side
 -- Server side only
@@ -227,7 +227,7 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.71
+local AIO_VERSION = 1.72
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
@@ -276,7 +276,7 @@ local LibWindow
 local LuaSrcDiet
 local NewQueue = NewQueue or require("queue")
 local Smallfolk = Smallfolk or require("smallfolk")
-local TLibCompress = AIO_MSG_COMPRESS and (TLibCompress or require("LibCompress"))
+local TLibCompress = not AIO_SERVER or AIO_MSG_COMPRESS and (TLibCompress or require("LibCompress"))
 if AIO_SERVER then
     LuaSrcDiet = require("LuaSrcDiet")
 else
