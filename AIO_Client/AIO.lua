@@ -796,7 +796,7 @@ end
 -- is received, the handlertable["HandlerName"] will be executed with player and additional params passed to the block.
 -- Returns the passed table
 function AIO.AddHandlers(name, handlertable)
-    assert(type(name) == 'string', "#1 string expected")
+    assert(name ~= nil, "#1 expected not nil")
     assert(type(handlertable) == 'table', "#2 a table expected")
 
     for k,v in pairs(handlertable) do
@@ -833,7 +833,7 @@ if AIO_SERVER then
     -- A shorthand for sending a message for a handler.
     function AIO.Handle(player, name, handlername, ...)
         assert(type(player) == 'userdata', "#1 player expected")
-        assert(type(name) == 'string', "#2 string expected")
+        assert(name ~= nil, "#2 expected not nil")
         return AIO.Msg():Add(name, handlername, ...):Send(player)
     end
 
@@ -947,7 +947,7 @@ else
 
     -- A shorthand for sending a message for a handler.
     function AIO.Handle(name, handlername, ...)
-        assert(type(name) == 'string', "#1 string expected")
+        assert(name ~= nil, "#1 expected not nil")
         return AIO.Msg():Add(name, handlername, ...):Send()
     end
 
