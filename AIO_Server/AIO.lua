@@ -784,7 +784,7 @@ end
 -- All parameters the client sends will be passed to func when called
 -- Only one function can be a handler for one name (subject for change)
 function AIO.RegisterEvent(name, func)
-    assert(type(name) == "string", "name of the registered event string expected")
+    assert(name ~= nil, "name of the registered event expected not nil")
     assert(type(func) == "function", "callback function must be a function")
     assert(not AIO_BLOCKHANDLES[name], "an event is already registered for the name: "..name)
     AIO_BLOCKHANDLES[name] = func
