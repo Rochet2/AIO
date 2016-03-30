@@ -626,12 +626,10 @@ local function AIO_HandleBlock(player, data, skipstored)
     end
     handledata(player, unpack(data, 3, data[1]+2))
 
-    if not skipstored and not AIO_SERVER and AIO_INITED and HandleName ~= 'AIO' and data[3] ~= 'Init' then
+    if not skipstored and not AIO_SERVER and AIO_INITED and HandleName == 'AIO' and data[3] == 'Init' then
         -- handle stored blocks after initialization, if they are not init messages
         for i = 1, #preinitblocks do
-            if preinitblocks[i][2] ~= 'AIO' or preinitblocks[i][3] ~= 'Init' then
-                AIO_HandleBlock(player, preinitblocks[i], true)
-            end
+            AIO_HandleBlock(player, preinitblocks[i], true)
             preinitblocks[i] = nil
         end
     end
