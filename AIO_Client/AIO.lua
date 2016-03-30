@@ -227,7 +227,7 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.72
+local AIO_VERSION = 1.73
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
