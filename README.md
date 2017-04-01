@@ -1,4 +1,4 @@
-#AIO
+# AIO
 AIO is a pure lua server-client communication system for Eluna and WoW.  
 AIO is designed for sending lua addons and data to player from server and data from player to server.  
 Made for [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna). Tested on 3.3.5a and should work on other patches. Tested with Lua 5.1 and 5.2.  
@@ -6,14 +6,14 @@ Made for [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna). Tested on 
 
 Backlink: https://github.com/Rochet2/AIO
 
-#Installation
+# Installation
 - Make sure you have [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna)
 - Copy the `AIO_Client` to your `WoW_installation_folder/Interface/AddOns/`
 - Copy the `AIO_Server` to your `server_root/lua_scripts/`
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
 - When developing an addon it is recommended to have AIO_ENABLE_PCALL off and sometimes you may need AIO_ENABLE_DEBUG_MSGS on to see some information about what is going on.
 
-#About
+# About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.
 When an addon added to AIO as an addon to send to the client, it will be processed (depending on settings, obfuscated and compressed) and stored in memory to wait for sending to players.
 All addons that are added are executed on client side in the order they were added to AIO.
@@ -22,11 +22,11 @@ Only if an addon is changed or added the new addon is sent again. The user can a
 The full addon code sent to client is executed on client as is. The code has full access to the client side addon API.
 The client-server messaging is handled with an AIO message helper class. It holds and manages the data to send over.
 
-#Commands
+# Commands
 There are some commands that may be useful.  
 On client side use `/aio help` to see a list of them. On server side use `.aio help` to see a list of them.
 
-#Safety
+# Safety
 The messaging between server and client is coded to be safe
 
 - you can limit the cache sizes, delays and other in AIO.lua
@@ -37,7 +37,7 @@ The messaging between server and client is coded to be safe
 - make sure your code has asserts in place and is fast. There is a tweakable timeout in AIO.lua just to be sure that the server will not hang if you happen to write bad or abusable code or if a bad user finds a way to hang the system
 - Do check the AIO.lua settings and tweak them to your needs for both client and server respectively. This is important to fend off bad users and make things work better with your setup.
 
-#Handlers
+# Handlers
 AIO has a few handlers by default that are used for the internal codes and you can
 use them if you wish.  
 You can also code your own handlers and add them to AIO with the functions described in API section. See AIO.RegisterEvent(name, func) and AIO.AddHandlers(name, handlertable)
@@ -54,7 +54,7 @@ AIO.Handle(player, "AIO", "ForceReload")
 AIO.Handle(player, "AIO", "ForceReset")
 ```
 
-#API
+# API
 For example scripts see the Examples folder. The example files are named according to their final execution location. To run the examples place all of their files to `server_root/lua_scripts/`.
 
 There are some client side commands. Use the slash command `/aio` ingame to see list of commands
@@ -187,7 +187,7 @@ msg = msg:Clear()
 msg = msg:Assemble()
 ```
 
-#Included dependencies
+# Included dependencies
 You do not need to get these, they are already included
 - Lua serializer: https://github.com/gvx/Smallfolk
 - Lua crc32: https://github.com/davidm/lua-digest-crc32lua
@@ -196,7 +196,7 @@ You do not need to get these, they are already included
 - Obfuscation for addon code: http://luasrcdiet.luaforge.net/
 - Sent addons' frame position saving: http://www.wowace.com/addons/libwindow-1-1/
 
-#Special thanks
+# Special thanks
 - Kenuvis < [Gate](http://www.ac-web.org/forums/showthread.php?148415-LUA-Gate-Project), [ElunaGate](https://github.com/ElunaLuaEngine/ElunaGate) >
 - Laurea/alexeng/Kyromyr < https://github.com/Alexeng, https://github.com/Kyromyr>
 - Foereaper < https://github.com/Foereaper >
