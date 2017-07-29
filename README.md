@@ -192,7 +192,7 @@ You do not need to get these, they are already included
 - Lua serializer: https://github.com/gvx/Smallfolk
 - Lua crc32: https://github.com/davidm/lua-digest-crc32lua
 - Lua queue with modifications: http://www.lua.org/pil/11.4.html
-- Compression for string data: https://love2d.org/wiki/TLTools
+- Compression for string data: https://github.com/Rochet2/lualzw/tree/zeros
 - Obfuscation for addon code: http://luasrcdiet.luaforge.net/
 - Sent addons' frame position saving: http://www.wowace.com/addons/libwindow-1-1/
 

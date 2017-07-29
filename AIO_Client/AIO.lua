@@ -154,53 +154,70 @@ assert(not AIO, "AIO is already loaded. Possibly different versions!")
 -- Server-Client messaging config:
 ----------------------------------
 
--- When developing an addon it is advised to set AIO_ENABLE_PCALL false and leave others as is if not needed.
+-- When developing an addon it is advised to set AIO_ENABLE_PCALL false and AIO_CODE_OBFUSCATE to false
+-- Or alternatively set AIO_ENABLE_PCALL true, AIO_ENABLE_TRACEBACK to true and AIO_CODE_OBFUSCATE to false
+-- The defaults are recommended for normal use
 
 -- Enables some additional prints for debugging
-local AIO_ENABLE_DEBUG_MSGS   = false -- default false
+local AIO_ENABLE_DEBUG_MSGS = false -- default false
+
 -- Enables pcall to silence errors and continue running normally when an error occurs
--- If AIO_ENABLE_DEBUG_MSGS is true, errors are printed and running is continued
+-- If AIO_ENABLE_PCALL is true, errors are printed and running is continued
 -- If AIO_ENABLE_PCALL is false, pcall is not used and errors occur normally
 -- Erroring out can be useful for debugging scripts
-local AIO_ENABLE_PCALL        = true -- default true
+local AIO_ENABLE_PCALL = true -- default true
+
 -- Enables using debug.traceback as the error handler to help locating errors
 -- on server side. Make sure you have default Eluna extensions in place.
 -- On client side uses _ERRORMESSAGE function to output errors with trace.
-local AIO_ENABLE_TRACEBACK    = false -- default false
--- prints all messages
-local AIO_ENABLE_MSGPRINT     = false -- default false
+-- Requires AIO_ENABLE_PCALL to be true
+local AIO_ENABLE_TRACEBACK = false -- default false
 
--- Max VM instructions to do before timeout, default 1e8
+-- prints all messages
+local AIO_ENABLE_MSGPRINT = false -- default false
+
+-- Max VM instructions to do before timeout
 -- Attempts to avoid server freeze on bad code and or user
 -- Use 0 to disable timeout
 -- Server side only
-local AIO_TIMEOUT_INSTRUCTIONCOUNT    = 1e8
--- Amount of data to store per character at maximum, default 0.5mb
+local AIO_TIMEOUT_INSTRUCTIONCOUNT = 1e8 -- default 1e8
+
+-- Amount of data to store per character at maximum
 -- Attempts to avoid consuming ram
-local AIO_MSG_CACHE_SPACE   = 5e5 -- bytes
--- Time to wait for a message to arrive, default 15 sec
+-- Server side only
+local AIO_MSG_CACHE_SPACE = 5e5 -- bytes -- default 5e5
+
+-- Time to wait for a message to arrive
 -- Attempts to avoid consuming ram and storing incomplete messages
-local AIO_MSG_CACHE_TIME    = 15*1000 -- ms
--- Delay between checking for outdated messages, default 5 sec
-local AIO_MSG_CACHE_DELAY    = 5*1000 -- ms
--- Delay between possible sending of full addon code, default 5 sec
+local AIO_MSG_CACHE_TIME = 15*1000 -- ms -- default 15*1000
+
+-- Delay between checking for outdated messages
+local AIO_MSG_CACHE_DELAY = 5*1000 -- ms -- default 5*1000
+
+-- Delay between possible sending of full addon code
 -- User can potentially request the full addon list repeatedly
 -- this limits the ability to do that (avoid lagging from bad user)
 -- Server side only
-local AIO_UI_INIT_DELAY   = 5*1000 -- ms
--- Setting to send or log client errors to Eluna.log, default false
--- Is only able to log errors that client sends and client sends them
--- if it has pcall enabled
-local AIO_ERROR_LOG     = true
--- Setting to enable and disable LZW compressing for addons, default true
--- Note that compression is not used for messaging in general due to it's slowness
--- It is assumed that messages sent around normally are not thousands of characters long
+local AIO_UI_INIT_DELAY = 5*1000 -- ms -- default 5*1000
+
+-- Setting to enable and disable LZW compressing for addons
 -- Server side only
-local AIO_MSG_COMPRESS    = false
--- Setting to enable and disable obfuscation for code to reduce size, default true
--- only used on server side
+local AIO_MSG_COMPRESS = true -- default true
+
+-- Setting to enable and disable obfuscation for code to reduce size
+-- Note that error messages will not have correct line numbers since obfuscation rearranage the code
+-- for debugging purposes it is recommended to disable this option
 -- Server side only
-local AIO_CODE_OBFUSCATE  = true
+local AIO_CODE_OBFUSCATE = true -- default true
+
+-- Setting to send client errors to server
+-- Client must have AIO_ENABLE_PCALL enabled
+-- Client side only
+local AIO_ERROR_LOG = false -- default false
+
+----------------------------------
+
+----------------------------------
 
 local assert = assert
 local type = type
@@ -227,7 +244,7 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.73
+local AIO_VERSION = 1.74
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
@@ -276,7 +293,7 @@ local LibWindow
 local LuaSrcDiet
 local NewQueue = NewQueue or require("queue")
 local Smallfolk = Smallfolk or require("smallfolk")
-local TLibCompress = not AIO_SERVER or AIO_MSG_COMPRESS and (TLibCompress or require("LibCompress"))
+local lualzw = lualzw or require("lualzw")
 if AIO_SERVER then
     LuaSrcDiet = require("LuaSrcDiet")
 else
@@ -737,7 +754,7 @@ local function _AIO_HandleIncomingMsg(msg, player)
     data.parts[partId] = msg
 
     pdata.stored = pdata.stored + #msg
-    if pdata.stored > AIO_MSG_CACHE_SPACE then
+    if AIO_SERVER and pdata.stored > AIO_MSG_CACHE_SPACE then
         local l, r = pdata.ramque:getrange()
         for i = l, r-1 do -- -1 for leaving at least one message
             -- remove message from stores leaving it for GC
@@ -848,7 +865,7 @@ if AIO_SERVER then
             code = LuaSrcDiet(code, 3)
         end
         if AIO_MSG_COMPRESS then
-            code = AIO_Compressed..assert(TLibCompress.CompressLZW(code))
+            code = AIO_Compressed..assert(lualzw.compress(code))
         else
             code = AIO_Uncompressed..code
         end
@@ -1009,7 +1026,7 @@ else
         assert(code, "Addon doesnt exist")
         local compression, compressedcode = ssub(code, 1, 1), ssub(code, 2)
         if compression == AIO_Compressed then
-            compressedcode = assert(TLibCompress.DecompressLZW(compressedcode))
+            compressedcode = assert(lualzw.decompress(compressedcode))
         end
         assert(loadstring(compressedcode, name))()
     end
