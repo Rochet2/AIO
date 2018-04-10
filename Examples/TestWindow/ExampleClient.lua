@@ -90,7 +90,7 @@ frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnHide", frame.StopMovingOrSizing)
 frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
 
--- This enables saving of the position of the frame over
+-- This enables saving of the position of the frame over reload of the UI or restarting game
 AIO.SavePosition(frame)
 
 -- A handler triggered by using AIO.Handle(player, "AIOExample", "ShowFrame")
