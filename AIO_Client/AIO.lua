@@ -20,6 +20,28 @@
 -- #API
 -- For example scripts see the Examples folder. The example files are named according to their final execution location. To run the examples place all of their files to `server_root/lua_scripts/`.
 
+-- AIO V1.75 changes:
+-- Multiple files per addon support.
+-- Now files in AIO addon are referenced with a addon namespace on client side.
+-- When you include a file the addon name and namespace are injected
+-- It permit file inclusion on client, it is similar as wow addons e.g
+AddonName, Namespace = ... -- Those are the injected variable for an included file (Client only)
+MyAddonName, MyAddonNS = ... -- the name doesn't matter
+
+-- client inter addon communication can be done with _G, Libstub, AIOnamespace
+-- AIOnamespace table contain all AIO addons, to access a specific addon table use: AIOnamespace.AddonName
+
+AIO.Include(AddonName, FilePath):
+--   Is the same as AIO.AddAddon but you need to add an addon name
+--   Use a path relative to the current file, more similar to require function.
+--   My eluna's scripts are wrapped into "modules" that are copied in the binary/lua folder when core/modules build
+--   With relative path the directory sctructure may change without conflict
+
+AIO.AddAddonFile(AddonName, FileName, Code)
+--   Same as AIO.AddAddonCode(name, code)
+
+
+
 -- AIO is required this way due to server and client differences with require function
 local AIO = AIO or require("AIO")
 
@@ -37,6 +59,7 @@ version = AIO.GetVersion()
 -- 'path' is relative to worldserver.exe but an absolute path can also be given.
 -- You should call this function only on startup to ensure everyone gets the same
 -- addons and no addon is duplicate.
+-- DEPRECATED
 added = AIO.AddAddon([path, name])
 -- The way this is designed to be used is at the top of an addon file so that the
 -- file is added and not run if we are on server, and just run if we are on client:
@@ -52,6 +75,7 @@ end
 -- The function only exists on server side.
 -- You should call this function only on startup to ensure everyone gets the same
 -- addons and no addon is duplicate.
+-- DEPRECATED
 AIO.AddAddonCode(name, code)
 
 -- Triggers the handler function that has the name 'handlername' from the handlertable
@@ -244,7 +268,7 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.74
+local AIO_VERSION = 1.75
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
@@ -835,11 +859,29 @@ end
 -- Returns true if addon was added
 function AIO.AddAddon(path, name)
     if AIO_SERVER then
-        path = path or debug.getinfo(2, 'S').source:sub(2)
-        name = name or match(path, "([^/]*)$")
-        local code = AIO_ReadFile(path)
-        AIO.AddAddonCode(name, code)
-        AIO_debug("Added addon path&name:", path, name)
+        if AIO_ENABLE_DEBUG_MSGS then
+            print("Warning: AIO.AddAddon(path, name) is deprecated! \n Consider using: AIO.AddAddonFile(AddonName, FileName, Code)")
+        end
+        return true
+    end
+end
+
+function AIO.Include(AddonName, FilePath)
+    if AIO_SERVER then
+        assert(type(AddonName) == 'string', "#1 string expected")
+        local CurrentPath = debug.getinfo(2, 'S').source:sub(2)
+        local CurrentFolder = string.match(CurrentPath, "(.*[/\\])")        
+        local FileName = string.match((FilePath or CurrentPath), "([^/\\]*)$")
+
+        FilePath = FilePath and (CurrentFolder .. FilePath) or CurrentPath
+        print(FilePath, FileName)
+
+        -- readfile
+        local f = assert(io.open(FilePath, "rb"))
+        local Code = f:read("*all")
+        f:close()
+        -- send to client
+        AIO.AddAddonFile(AddonName, FileName, Code)
         return true
     end
 end
@@ -859,18 +901,28 @@ if AIO_SERVER then
     -- Do note that short names are better since they are sent back and forth to indentify files
     local crc32 = require("crc32lua").crc32
     function AIO.AddAddonCode(name, code)
-        assert(type(name) == 'string', "#1 string expected")
-        assert(type(code) == 'string', "#2 string expected")
+        if AIO_ENABLE_DEBUG_MSGS then
+            print("Warning: AIO.AddAddonCode(name, code) is deprecated! \n Consider using: Include(AddonName, FilePath)")
+        end
+    end
+
+    
+    function AIO.AddAddonFile(AddonName, FileName, Code)
+        assert(type(AddonName) == 'string', "#1 string expected")
+        assert(type(FileName) == 'string', "#2 string expected")
+        assert(type(Code) == 'string', "#3 string expected")
         if AIO_CODE_OBFUSCATE then
-            code = LuaSrcDiet(code, 3)
+            Code = LuaSrcDiet(Code, 3)
         end
         if AIO_MSG_COMPRESS then
-            code = AIO_Compressed..assert(lualzw.compress(code))
+            Code = AIO_Compressed..assert(lualzw.compress(Code))
         else
-            code = AIO_Uncompressed..code
+            Code = AIO_Uncompressed..Code
         end
-        AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {name=name, crc=crc32(code), code=code}
+        AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {uid=AddonName..FileName, addonname=AddonName, filename=FileName, crc=crc32(Code), code=Code}
     end
+
+
 
     -- Adds a new function that is called when an init message
     -- is about to be sent by server. The function is called before sending and
@@ -917,10 +969,10 @@ if AIO_SERVER then
         local cached = {}
         for i = 1, #AIO_ADDONSORDER do
             local data = AIO_ADDONSORDER[i]
-            local clientcrc = istable and clientdata[data.name] or nil
+            local clientcrc = istable and clientdata[data.uid] or nil
             if clientcrc and clientcrc == data.crc then
                 -- valid - send name only
-                cached[i] = data.name
+                cached[i] = {uid=data.uid, addonname=data.addonname}
             else
                 -- not cached or outdated - send new
                 addons[i] = data
@@ -1020,15 +1072,17 @@ else
     -- On wrong version prevents handling any more messages
     -- Stores new and changed addons to cache and runs the addons from cache
     -- Also removes removed and outdated addons
-    local function RunAddon(name)
+    local AddonName, AIONameSpace = ...
+    _G.AIONameSpace = AIONameSpace
+    local function RunAddon(uid, name, Namespace)
         -- Check if code is compressed and uncompress if needed
-        local code = AIO_sv_Addons[name] and AIO_sv_Addons[name].code
+        local code = AIO_sv_Addons[uid] and AIO_sv_Addons[uid].code
         assert(code, "Addon doesnt exist")
         local compression, compressedcode = ssub(code, 1, 1), ssub(code, 2)
         if compression == AIO_Compressed then
             compressedcode = assert(lualzw.decompress(compressedcode))
         end
-        assert(loadstring(compressedcode, name))()
+        assert(loadstring(compressedcode, uid))(name, Namespace)
     end
     function AIO_HANDLERS.Init(player, version, N, addons, cached)
         if(AIO_VERSION ~= version) then
@@ -1045,25 +1099,38 @@ else
 
         local validAddons = {}
         for i = 1, N do
-            local name
+            -- local name
+            local uid
+            local addonname
             if addons[i] then
-                name = addons[i].name
-                AIO_sv_Addons[name] = addons[i]
-                validAddons[name] = true
+                uid = addons[i].uid
+                addonname = addons[i].addonname
+                AIO_sv_Addons[uid] = addons[i]
+                validAddons[uid] = true
+
             elseif cached[i] then
-                name = cached[i]
-                validAddons[name] = true
+                uid = cached[i].uid
+                addonname = cached[i].addonname
+                validAddons[uid] = true
             else
                 error("Unexpected behavior, try /aio reset")
             end
 
-            AIO_pcall(RunAddon, name)
+            if AIONameSpace[addonname] == nil then
+                AIONameSpace[addonname] = {}
+                -- print("Create a new namespace " .. tostring(AIONameSpace[addonname]) .. " for addon: " .. tostring(addonname))
+            end
+            -- print("RunAddon" .. tostring(RunAddon),
+            -- "\n uid" .. tostring(uid),
+            -- "\n addonname", tostring(addonname),
+            -- "\n AIONameSpace[addonname]", tostring(AIONameSpace[addonname]))
+            AIO_pcall(RunAddon, uid, addonname, AIONameSpace[addonname])
         end
 
         local invalidAddons = {}
-        for name, data in pairs(AIO_sv_Addons) do
-            if not validAddons[name] then
-                invalidAddons[#invalidAddons+1] = name
+        for uid, data in pairs(AIO_sv_Addons) do
+            if not validAddons[uid] then
+                invalidAddons[#invalidAddons+1] = uid
             end
         end
 
@@ -1141,15 +1208,15 @@ else
             -- initmsg consists of the version and all known crc codes for cached addons.
             local rem = {}
             local addons = {}
-            for name, data in pairs(AIO_sv_Addons) do
-                if type(name) ~= 'string' or type(data) ~= 'table' or type(data.crc) ~= 'number' or type(data.code) ~= 'string' then
-                    table.insert(rem, name)
+            for uid, data in pairs(AIO_sv_Addons) do
+                if type(uid) ~= 'string' or type(data) ~= 'table' or type(data.crc) ~= 'number' or type(data.code) ~= 'string' then
+                    table.insert(rem, uid)
                 else
-                    addons[name] = data.crc
+                    addons[uid] = data.crc
                 end
             end
-            for _,name in ipairs(rem) do
-                AIO_sv_Addons[name] = nil -- remove invalid addons
+            for _,uid in ipairs(rem) do
+                AIO_sv_Addons[uid] = nil -- remove invalid addons
             end
 
             local initmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION, addons)
