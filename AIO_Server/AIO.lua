@@ -235,8 +235,8 @@ local select = select
 local pcall = pcall
 local xpcall = xpcall
 -- Some lua compatibility between 5.1 and 5.2
-loadstring = loadstring or load -- loadstring name varies with lua 5.1 and 5.2
-unpack = unpack or table.unpack -- unpack place varies with lua 5.1 and 5.2
+local loadstring = loadstring or load -- loadstring name varies with lua 5.1 and 5.2
+local unpack = unpack or table.unpack -- unpack place varies with lua 5.1 and 5.2
 -- server client compatibility
 local AIO_GetTime = os and os.time or function() return GetTime()*1000 end
 local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-_then end
