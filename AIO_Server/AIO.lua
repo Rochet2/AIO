@@ -954,8 +954,10 @@ if AIO_SERVER then
     end
     RegisterServerEvent(30, ONADDONMSG)
 
-    for k,v in ipairs(GetPlayersInWorld()) do
-        AIO.Handle(v, "AIO", "ForceReload")
+    if GetStateMapId() == -1 then
+        for k,v in ipairs(GetPlayersInWorld()) do
+            AIO.Handle(v, "AIO", "ForceReload")
+        end
     end
 
 else
