@@ -26,9 +26,13 @@ local AIO = AIO or require("AIO")
 -- Returns true if we are on server side, false if we are on client side
 isServer = AIO.IsServer()
 
+-- Returns true if we are on main state, true if we are on client side
+isMainState = AIO.IsMainState()
+
 -- Returns AIO version - note the type is not guaranteed to be a number
 version = AIO.GetVersion()
 
+-- Only exists on main lua state
 -- Adds the file at given path to files to send to players if called on server side.
 -- The addon code is trimmed according to settings in AIO.lua.
 -- The addon is cached on client side and will be updated only when needed.
@@ -49,7 +53,7 @@ end
 -- be updated only when needed. 'name' is an unique name for the addon, usually
 -- you can use the file name or addon name there. Do note that short names are
 -- better since they are sent back and forth to indentify files.
--- The function only exists on server side.
+-- The function only exists on server side. Only on main lua state.
 -- You should call this function only on startup to ensure everyone gets the same
 -- addons and no addon is duplicate.
 AIO.AddAddonCode(name, code)
@@ -85,7 +89,7 @@ AIO.RegisterEvent(name, func)
 -- The function is called before sending and the initial message is passed to it
 -- along with the player if available: func(msg[, player])
 -- In the function you can modify the passed msg and/or return a new one to be
--- used as initial message. Only on server side.
+-- used as initial message. Only on server side. Only on main lua state.
 -- This can be used to send for example initial values (like player stats) for the addons.
 -- If dynamic loading is preferred, you can use the messaging API to request the values
 -- on demand also.
@@ -243,6 +247,8 @@ local AIO_GetTimeDiff = os and os.difftime or function(_now, _then) return _now-
 
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
+-- boolean value to define if we are on main lua state (eluna multistate support)
+local AIO_MAIN_LUA_STATE = not AIO_SERVER or not GetStateMapId or GetStateMapId() == -1
 -- Client must have same version (basically same AIO file)
 local AIO_VERSION = 1.74
 -- ID characters for client-server messaging
@@ -303,6 +309,11 @@ end
 -- Returns true if we are on server
 function AIO.IsServer()
     return AIO_SERVER
+end
+
+-- Returns true if we are on client, returns true if we are on main state on server and false otherwise
+function AIO.IsMainState()
+    return AIO_MAIN_LUA_STATE
 end
 
 -- Returns AIO version - note the type is not guaranteed to be a number
@@ -442,7 +453,9 @@ local function ProcessRemoveQue()
     end
 end
 if AIO_SERVER then
-    CreateLuaEvent(ProcessRemoveQue, AIO_MSG_CACHE_DELAY, 0)
+    if AIO_MAIN_LUA_STATE then
+        CreateLuaEvent(ProcessRemoveQue, AIO_MSG_CACHE_DELAY, 0)
+    end
 else
     local frame = CreateFrame("Frame")
     local timer = AIO_MSG_CACHE_DELAY
@@ -457,7 +470,7 @@ else
     frame:SetScript("OnUpdate", ONUPDATE)
 end
 -- Erase data on logout
-if AIO_SERVER then
+if AIO_SERVER and AIO_MAIN_LUA_STATE then
     local function Erase(event, player)
         RemoveData(player:GetGUIDLow())
     end
@@ -827,20 +840,23 @@ function AIO.AddHandlers(name, handlertable)
     return handlertable
 end
 
+-- Only exists on main lua state
 -- Adds the current file as an AIO sent addon.
 -- Can be used from server and client, but on client does nothing.
 -- You can provide path and/or name of the lua file to add, but if
 -- omitted the file the function is executed in will be used as path
 -- and the path's or given path's file name will be used.
 -- Returns true if addon was added
-function AIO.AddAddon(path, name)
-    if AIO_SERVER then
-        path = path or debug.getinfo(2, 'S').source:sub(2)
-        name = name or match(path, "([^/]*)$")
-        local code = AIO_ReadFile(path)
-        AIO.AddAddonCode(name, code)
-        AIO_debug("Added addon path&name:", path, name)
-        return true
+if AIO_MAIN_LUA_STATE then
+    function AIO.AddAddon(path, name)
+        if AIO_SERVER then
+            path = path or debug.getinfo(2, 'S').source:sub(2)
+            name = name or match(path, "([^/]*)$")
+            local code = AIO_ReadFile(path)
+            AIO.AddAddonCode(name, code)
+            AIO_debug("Added addon path&name:", path, name)
+            return true
+        end
     end
 end
 
@@ -852,34 +868,37 @@ if AIO_SERVER then
         return AIO.Msg():Add(name, handlername, ...):Send(player)
     end
 
-    -- Adds the addon code to the sent addons on login.
-    -- The addon code is trimmed according to settings at top of this file.
-    -- The addon is cached on client side and will be updated if needed.
-    -- name is an unique ID for the addon, usually you can use the file name or addon name there
-    -- Do note that short names are better since they are sent back and forth to indentify files
-    local crc32 = require("crc32lua").crc32
-    function AIO.AddAddonCode(name, code)
-        assert(type(name) == 'string', "#1 string expected")
-        assert(type(code) == 'string', "#2 string expected")
-        if AIO_CODE_OBFUSCATE then
-            code = LuaSrcDiet(code, 3)
+    
+    if AIO_MAIN_LUA_STATE then
+        -- Adds the addon code to the sent addons on login.
+        -- The addon code is trimmed according to settings at top of this file.
+        -- The addon is cached on client side and will be updated if needed.
+        -- name is an unique ID for the addon, usually you can use the file name or addon name there
+        -- Do note that short names are better since they are sent back and forth to indentify files
+        local crc32 = require("crc32lua").crc32
+        function AIO.AddAddonCode(name, code)
+            assert(type(name) == 'string', "#1 string expected")
+            assert(type(code) == 'string', "#2 string expected")
+            if AIO_CODE_OBFUSCATE then
+                code = LuaSrcDiet(code, 3)
+            end
+            if AIO_MSG_COMPRESS then
+                code = AIO_Compressed..assert(lualzw.compress(code))
+            else
+                code = AIO_Uncompressed..code
+            end
+            AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {name=name, crc=crc32(code), code=code}
         end
-        if AIO_MSG_COMPRESS then
-            code = AIO_Compressed..assert(lualzw.compress(code))
-        else
-            code = AIO_Uncompressed..code
-        end
-        AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {name=name, crc=crc32(code), code=code}
-    end
 
-    -- Adds a new function that is called when an init message
-    -- is about to be sent by server. The function is called before sending and
-    -- the message is passed to it along with the player if available:
-    -- func(msg[, player])
-    -- you can modify the passed message and or return a new one
-    function AIO.AddOnInit(func)
-        assert(type(func) == 'function', "#1 function expected")
-        table.insert(AIO_INITHOOKS, func)
+        -- Adds a new function that is called when an init message
+        -- is about to be sent by server. The function is called before sending and
+        -- the message is passed to it along with the player if available:
+        -- func(msg[, player])
+        -- you can modify the passed message and or return a new one
+        function AIO.AddOnInit(func)
+            assert(type(func) == 'function', "#1 function expected")
+            table.insert(AIO_INITHOOKS, func)
+        end
     end
 
     -- This restricts player's ability to request the initial UI to some set time delay
@@ -952,9 +971,10 @@ if AIO_SERVER then
             AIO_HandleIncomingMsg(msg, sender)
         end
     end
-    RegisterServerEvent(30, ONADDONMSG)
 
-    if GetStateMapId() == -1 then
+    if AIO_MAIN_LUA_STATE then
+        RegisterServerEvent(30, ONADDONMSG)
+
         for k,v in ipairs(GetPlayersInWorld()) do
             AIO.Handle(v, "AIO", "ForceReload")
         end
@@ -1231,7 +1251,9 @@ if AIO_SERVER then
         cmds.help(player)
         return false
     end
-    RegisterPlayerEvent(42, OnCommand)
+    if AIO_MAIN_LUA_STATE then
+        RegisterPlayerEvent(42, OnCommand)
+    end
 else
     SLASH_AIO1 = "/aio"
     function SlashCmdList.AIO(msg)
