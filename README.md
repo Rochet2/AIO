@@ -70,14 +70,13 @@ local AIO = AIO or require("AIO")
 -- Returns true if we are on server side, false if we are on client side
 isServer = AIO.IsServer()
 
--- Returns true if we are on main state, true if we are on client side
+-- Returns true if we are on main lua state, true if we are on client side
 isMainState = AIO.IsMainState()
 
 -- Returns AIO version - note the type is not guaranteed to be a number
 version = AIO.GetVersion()
 
--- Only exists on main lua state
--- Adds the file at given path to files to send to players if called on server side.
+-- Adds the file at given path to files to send to players if called on server side in main state.
 -- The addon code is trimmed according to settings in AIO.lua.
 -- The addon is cached on client side and will be updated only when needed.
 -- Returns false on client side and true on server side. By default the

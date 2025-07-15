@@ -32,8 +32,7 @@ isMainState = AIO.IsMainState()
 -- Returns AIO version - note the type is not guaranteed to be a number
 version = AIO.GetVersion()
 
--- Only exists on main lua state
--- Adds the file at given path to files to send to players if called on server side.
+-- Adds the file at given path to files to send to players if called on server side in main state.
 -- The addon code is trimmed according to settings in AIO.lua.
 -- The addon is cached on client side and will be updated only when needed.
 -- Returns false on client side and true on server side. By default the
@@ -285,14 +284,14 @@ local AIO_SAVEDVARSCHAR = {}
 -- Client side flag for noting if the client has been inited or not
 local AIO_INITED = false
 -- Server and Client side functions to execute on AIO messages
-local AIO_HANDLERS = {}
+local AIO_HANDLERS = AIO_MAIN_LUA_STATE and {} or nil
 -- Server side functions to execute when an init msg is received
 local AIO_INITHOOKS = {}
 -- Server and Client side custom coded handlers for incoming data
 local AIO_BLOCKHANDLES = {}
 -- A server side table for correct order of addons to send
 -- you should add all addon code here with AIO.AddAddon
-local AIO_ADDONSORDER = {}
+local AIO_ADDONSORDER = AIO_MAIN_LUA_STATE and {} or nil
 
 -- Dependencies
 local LibWindow
@@ -301,7 +300,9 @@ local NewQueue = NewQueue or require("queue")
 local Smallfolk = Smallfolk or require("smallfolk")
 local lualzw = lualzw or require("lualzw")
 if AIO_SERVER then
-    LuaSrcDiet = require("LuaSrcDiet")
+    if AIO_MAIN_LUA_STATE then
+        LuaSrcDiet = require("LuaSrcDiet")
+    end
 else
     LibWindow = LibStub("LibWindow-1.1")
 end
@@ -840,23 +841,22 @@ function AIO.AddHandlers(name, handlertable)
     return handlertable
 end
 
--- Only exists on main lua state
--- Adds the current file as an AIO sent addon.
+-- Adds the current file as an AIO sent addon if called on server side main state.
 -- Can be used from server and client, but on client does nothing.
 -- You can provide path and/or name of the lua file to add, but if
 -- omitted the file the function is executed in will be used as path
 -- and the path's or given path's file name will be used.
--- Returns true if addon was added
-if AIO_MAIN_LUA_STATE then
-    function AIO.AddAddon(path, name)
-        if AIO_SERVER then
+-- Returns true if called on server side
+function AIO.AddAddon(path, name)
+    if AIO_SERVER then
+        if AIO_MAIN_LUA_STATE then
             path = path or debug.getinfo(2, 'S').source:sub(2)
             name = name or match(path, "([^/]*)$")
             local code = AIO_ReadFile(path)
             AIO.AddAddonCode(name, code)
             AIO_debug("Added addon path&name:", path, name)
-            return true
         end
+        return true
     end
 end
 
@@ -899,80 +899,78 @@ if AIO_SERVER then
             assert(type(func) == 'function', "#1 function expected")
             table.insert(AIO_INITHOOKS, func)
         end
-    end
 
-    -- This restricts player's ability to request the initial UI to some set time delay
-    local timers = {}
-    local function RemoveInitTimer(eventid, playerguid)
-        if type(playerguid) == "number" then
-            timers[playerguid] = nil
+        -- This restricts player's ability to request the initial UI to some set time delay
+        local timers = {}
+        local function RemoveInitTimer(eventid, playerguid)
+            if type(playerguid) == "number" then
+                timers[playerguid] = nil
+            end
         end
-    end
-    -- This handles sending initial UI to player.
-    -- The Client sends a request to the server for the addons along with it's cached addon data.
-    -- Then the server checks what files it has to send back and what it has to remove from the client's cache.
-    -- Then after server sends the required data to client, the client will one by one execute the addons
-    -- in the same order as they are sent from the server.
-    local versionmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION)
-    function AIO_HANDLERS.Init(player, version, clientdata)
-        -- check that the player is not on cooldown for init calling
-        local guid = player:GetGUIDLow()
-        if timers[guid] then
-            return
+        -- This handles sending initial UI to player.
+        -- The Client sends a request to the server for the addons along with it's cached addon data.
+        -- Then the server checks what files it has to send back and what it has to remove from the client's cache.
+        -- Then after server sends the required data to client, the client will one by one execute the addons
+        -- in the same order as they are sent from the server.
+        local versionmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION)
+        function AIO_HANDLERS.Init(player, version, clientdata)
+            -- check that the player is not on cooldown for init calling
+            local guid = player:GetGUIDLow()
+            if timers[guid] then
+                return
+            end
+
+            -- make a new cooldown for init calling
+            timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, AIO_UI_INIT_DELAY, 1) -- the timer here (AIO_UI_INIT_DELAY) is the min time in ms between inits the player can do
+
+            -- Check for bad version and send version back for error directly
+            if version ~= AIO_VERSION then
+                versionmsg:Send(player)
+                return
+            end
+
+            local istable = type(clientdata) == 'table'
+
+            local addons = {}
+            local cached = {}
+            for i = 1, #AIO_ADDONSORDER do
+                local data = AIO_ADDONSORDER[i]
+                local clientcrc = istable and clientdata[data.name] or nil
+                if clientcrc and clientcrc == data.crc then
+                    -- valid - send name only
+                    cached[i] = data.name
+                else
+                    -- not cached or outdated - send new
+                    addons[i] = data
+                end
+            end
+
+            local initmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION, #AIO_ADDONSORDER, addons, cached)
+
+            for k,v in ipairs(AIO_INITHOOKS) do
+                initmsg = v(initmsg, player) or initmsg
+            end
+
+            initmsg:Send(player)
         end
 
-        -- make a new cooldown for init calling
-        timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, AIO_UI_INIT_DELAY, 1) -- the timer here (AIO_UI_INIT_DELAY) is the min time in ms between inits the player can do
-
-        -- Check for bad version and send version back for error directly
-        if version ~= AIO_VERSION then
-            versionmsg:Send(player)
-            return
+        -- Handler that catches client errors
+        -- can be used to log client errors to server
+        function AIO_HANDLERS.Error(player, errmsg)
+            if not AIO_ERROR_LOG or type(errmsg) ~= 'string' then
+                return
+            end
+            PrintInfo(errmsg)
         end
 
-        local istable = type(clientdata) == 'table'
-
-        local addons = {}
-        local cached = {}
-        for i = 1, #AIO_ADDONSORDER do
-            local data = AIO_ADDONSORDER[i]
-            local clientcrc = istable and clientdata[data.name] or nil
-            if clientcrc and clientcrc == data.crc then
-                -- valid - send name only
-                cached[i] = data.name
-            else
-                -- not cached or outdated - send new
-                addons[i] = data
+        -- An addon message event handler for the lua engine
+        -- If the message data is correct, move the message forward to the AIO message handler.
+        local function ONADDONMSG(event, sender, Type, prefix, msg, target)
+            if prefix == AIO_ClientPrefix and tostring(sender) == tostring(target) and #msg < 510 then
+                AIO_HandleIncomingMsg(msg, sender)
             end
         end
 
-        local initmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION, #AIO_ADDONSORDER, addons, cached)
-
-        for k,v in ipairs(AIO_INITHOOKS) do
-            initmsg = v(initmsg, player) or initmsg
-        end
-
-        initmsg:Send(player)
-    end
-
-    -- Handler that catches client errors
-    -- can be used to log client errors to server
-    function AIO_HANDLERS.Error(player, errmsg)
-        if not AIO_ERROR_LOG or type(errmsg) ~= 'string' then
-            return
-        end
-        PrintInfo(errmsg)
-    end
-
-    -- An addon message event handler for the lua engine
-    -- If the message data is correct, move the message forward to the AIO message handler.
-    local function ONADDONMSG(event, sender, Type, prefix, msg, target)
-        if prefix == AIO_ClientPrefix and tostring(sender) == tostring(target) and #msg < 510 then
-            AIO_HandleIncomingMsg(msg, sender)
-        end
-    end
-
-    if AIO_MAIN_LUA_STATE then
         RegisterServerEvent(30, ONADDONMSG)
 
         for k,v in ipairs(GetPlayersInWorld()) do
@@ -1215,8 +1213,10 @@ else
     frame:SetScript("OnEvent", frame.OnEvent)
 end
 
--- Adds all handlers from AIO_HANDLERS for the "AIO" msg handler
-AIO.AddHandlers("AIO", AIO_HANDLERS)
+if AIO_MAIN_LUA_STATE then
+    -- Adds all handlers from AIO_HANDLERS for the "AIO" msg handler
+    AIO.AddHandlers("AIO", AIO_HANDLERS)
+end
 
 -- Tables holding the command functions and the help messages
 -- both are indexed by the command name. See below for how to add a command and help
@@ -1233,25 +1233,25 @@ local function pprint(player, ...)
 end
 
 if AIO_SERVER then
-    local function OnCommand(event, player, msg)
-        msg = msg:lower()
-        if ssub(msg, 1, 3) ~= 'aio' then
-            return
-        end
-        msg = ssub(msg, 5)
-        if msg and msg ~= "" then
-            for k,v in pairs(cmds) do
-                if k:find(msg, 1, true) == 1 then
-                    v(player)
-                    return false
+    if AIO_MAIN_LUA_STATE then
+        local function OnCommand(event, player, msg)
+            msg = msg:lower()
+            if ssub(msg, 1, 3) ~= 'aio' then
+                return
+            end
+            msg = ssub(msg, 5)
+            if msg and msg ~= "" then
+                for k,v in pairs(cmds) do
+                    if k:find(msg, 1, true) == 1 then
+                        v(player)
+                        return false
+                    end
                 end
             end
+            pprint(player, "Unknown command .aio "..tostring(msg))
+            cmds.help(player)
+            return false
         end
-        pprint(player, "Unknown command .aio "..tostring(msg))
-        cmds.help(player)
-        return false
-    end
-    if AIO_MAIN_LUA_STATE then
         RegisterPlayerEvent(42, OnCommand)
     end
 else
