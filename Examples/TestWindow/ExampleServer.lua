@@ -42,6 +42,11 @@ They contain a lot of new functions and information and everything has comments 
 -- would be enough, but lets just keep it like this for the sake of consistency
 local AIO = AIO or require("AIO")
 
+-- Check if we are on the main lua state
+if not AIO.IsMainState() then
+    return
+end
+
 -- AIO.AddHandlers adds a new table of functions as handlers for a name and returns the table.
 -- This is used to add functions for a specific "channel name" that trigger on specific messages.
 -- At this point the table is empty, but MyHandlers table will be filled soon.
@@ -63,6 +68,7 @@ local function OnCommand(event, player, command)
     if(command == "test") then
         -- Note that AIO.Handle has two different definitions:
         -- On client side you don't pass the player argument
+        -- You can also call AIO.Handle from non-main lua states even if many other functions cannot be called.
         AIO.Handle(player, "AIOExample", "ShowFrame")
         return false
     end

@@ -1,5 +1,11 @@
 local AIO = AIO or require("AIO")
 
+if not AIO.IsMainState() then
+    -- AIO communication is only handled by main lua state
+    -- return if we are running the code on other lua states (map lua states)
+    return
+end
+
 local HandlePingPong
 if AIO.AddAddon() then
     -- we are on server

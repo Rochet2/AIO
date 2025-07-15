@@ -3,7 +3,8 @@ if AIO.AddAddon() then
     return
 end
 
--- This script shows how to 
+-- This script shows how to use persistent variables on client side.
+-- Persistent variables are saved to the client and loaded when the client loads the addon.
 
 -- Make a global variable
 -- Notice how the variable is only initialized if it doesnt exist yet because

@@ -114,6 +114,7 @@ AIO.Handle(player, name, handlername[, ...])
 -- The client side version.
 AIO.Handle(name, handlername[, ...])
 
+-- Only on main lua state.
 -- Adds a table of handler functions for the specified 'name'. When a message like:
 -- AIO.Handle(name, "HandlerName", ...) is received, the handlertable["HandlerName"]
 -- will be called with player and varargs as parameters.
@@ -121,6 +122,7 @@ AIO.Handle(name, handlername[, ...])
 -- AIO.AddHandlers uses AIO.RegisterEvent internally, so same name can not be used on both.
 handlertable = AIO.AddHandlers(name, handlertable)
 
+-- Only on main lua state.
 -- Adds a new callback function that is called if a message with the given
 -- name is recieved. All parameters the sender sends in the message will
 -- be passed to func when called.

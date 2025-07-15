@@ -70,6 +70,7 @@ AIO.Handle(player, name, handlername[, ...])
 -- The client side version.
 AIO.Handle(name, handlername[, ...])
 
+-- Only on main lua state.
 -- Adds a table of handler functions for the specified 'name'. When a message like:
 -- AIO.Handle(name, "HandlerName", ...) is received, the handlertable["HandlerName"]
 -- will be called with player and varargs as parameters.
@@ -77,6 +78,7 @@ AIO.Handle(name, handlername[, ...])
 -- AIO.AddHandlers uses AIO.RegisterEvent internally, so same name can not be used on both.
 handlertable = AIO.AddHandlers(name, handlertable)
 
+-- Only on main lua state.
 -- Adds a new callback function that is called if a message with the given
 -- name is recieved. All parameters the sender sends in the message will
 -- be passed to func when called.
@@ -249,7 +251,7 @@ local AIO_SERVER = type(GetLuaEngine) == "function"
 -- boolean value to define if we are on main lua state (eluna multistate support)
 local AIO_MAIN_LUA_STATE = not AIO_SERVER or not GetStateMapId or GetStateMapId() == -1
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.74
+local AIO_VERSION = 1.75
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = schar(1)..schar(1)
 local AIO_Compressed        = 'C'
@@ -286,9 +288,9 @@ local AIO_INITED = false
 -- Server and Client side functions to execute on AIO messages
 local AIO_HANDLERS = AIO_MAIN_LUA_STATE and {} or nil
 -- Server side functions to execute when an init msg is received
-local AIO_INITHOOKS = {}
+local AIO_INITHOOKS = AIO_MAIN_LUA_STATE and {} or nil
 -- Server and Client side custom coded handlers for incoming data
-local AIO_BLOCKHANDLES = {}
+local AIO_BLOCKHANDLES = AIO_MAIN_LUA_STATE and {} or nil
 -- A server side table for correct order of addons to send
 -- you should add all addon code here with AIO.AddAddon
 local AIO_ADDONSORDER = AIO_MAIN_LUA_STATE and {} or nil
@@ -808,37 +810,39 @@ local function AIO_HandleIncomingMsg(msg, player)
     AIO_pcall(_AIO_HandleIncomingMsg, msg, player)
 end
 
--- Adds a new callback function for AIO that is called if
--- a block with the same name is recieved.
--- All parameters the client sends will be passed to func when called
--- Only one function can be a handler for one name (subject for change)
-function AIO.RegisterEvent(name, func)
-    assert(name ~= nil, "name of the registered event expected not nil")
-    assert(type(func) == "function", "callback function must be a function")
-    assert(not AIO_BLOCKHANDLES[name], "an event is already registered for the name: "..name)
-    AIO_BLOCKHANDLES[name] = func
-end
-
--- Adds a table of handler functions for the specified name.
--- You can fill a table with functions and use this to add them for a name.
--- Then when a message like AIO.Msg():Add("MyName", "HandlerName"):Send()
--- is received, the handlertable["HandlerName"] will be executed with player and additional params passed to the block.
--- Returns the passed table
-function AIO.AddHandlers(name, handlertable)
-    assert(name ~= nil, "#1 expected not nil")
-    assert(type(handlertable) == 'table', "#2 a table expected")
-
-    for k,v in pairs(handlertable) do
-        assert(type(v) == 'function', "#2 a table of functions expected, found a "..type(v).." value")
+if AIO_MAIN_LUA_STATE then
+    -- Adds a new callback function for AIO that is called if
+    -- a block with the same name is recieved.
+    -- All parameters the client sends will be passed to func when called
+    -- Only one function can be a handler for one name (subject for change)
+    function AIO.RegisterEvent(name, func)
+        assert(name ~= nil, "name of the registered event expected not nil")
+        assert(type(func) == "function", "callback function must be a function")
+        assert(not AIO_BLOCKHANDLES[name], "an event is already registered for the name: "..name)
+        AIO_BLOCKHANDLES[name] = func
     end
 
-    local function handler(player, key, ...)
-        if key and handlertable[key] then
-            handlertable[key](player, ...)
+    -- Adds a table of handler functions for the specified name.
+    -- You can fill a table with functions and use this to add them for a name.
+    -- Then when a message like AIO.Msg():Add("MyName", "HandlerName"):Send()
+    -- is received, the handlertable["HandlerName"] will be executed with player and additional params passed to the block.
+    -- Returns the passed table
+    function AIO.AddHandlers(name, handlertable)
+        assert(name ~= nil, "#1 expected not nil")
+        assert(type(handlertable) == 'table', "#2 a table expected")
+
+        for k,v in pairs(handlertable) do
+            assert(type(v) == 'function', "#2 a table of functions expected, found a "..type(v).." value")
         end
+
+        local function handler(player, key, ...)
+            if key and handlertable[key] then
+                handlertable[key](player, ...)
+            end
+        end
+        AIO.RegisterEvent(name, handler)
+        return handlertable
     end
-    AIO.RegisterEvent(name, handler)
-    return handlertable
 end
 
 -- Adds the current file as an AIO sent addon if called on server side main state.
@@ -1216,24 +1220,22 @@ end
 if AIO_MAIN_LUA_STATE then
     -- Adds all handlers from AIO_HANDLERS for the "AIO" msg handler
     AIO.AddHandlers("AIO", AIO_HANDLERS)
-end
 
--- Tables holding the command functions and the help messages
--- both are indexed by the command name. See below for how to add a command and help
-local cmds = {}
-local helps = {}
+    -- Tables holding the command functions and the help messages
+    -- both are indexed by the command name. See below for how to add a command and help
+    local cmds = {}
+    local helps = {}
 
--- A print selector
-local function pprint(player, ...)
-    if player then
-        player:SendBroadcastMessage(tconcat({...}, " "))
-    else
-        print(...)
+    -- A print selector
+    local function pprint(player, ...)
+        if player then
+            player:SendBroadcastMessage(tconcat({...}, " "))
+        else
+            print(...)
+        end
     end
-end
 
-if AIO_SERVER then
-    if AIO_MAIN_LUA_STATE then
+    if AIO_SERVER then
         local function OnCommand(event, player, msg)
             msg = msg:lower()
             if ssub(msg, 1, 3) ~= 'aio' then
@@ -1253,59 +1255,59 @@ if AIO_SERVER then
             return false
         end
         RegisterPlayerEvent(42, OnCommand)
-    end
-else
-    SLASH_AIO1 = "/aio"
-    function SlashCmdList.AIO(msg)
-        local msg = msg:lower()
-        if msg and msg ~= "" then
-            for k,v in pairs(cmds) do
-                if k:find(msg, 1, true) == 1 then
-                    v()
-                    return
+    else
+        SLASH_AIO1 = "/aio"
+        function SlashCmdList.AIO(msg)
+            local msg = msg:lower()
+            if msg and msg ~= "" then
+                for k,v in pairs(cmds) do
+                    if k:find(msg, 1, true) == 1 then
+                        v()
+                        return
+                    end
                 end
             end
+            print("Unknown command /aio "..tostring(msg))
+            cmds.help()
         end
-        print("Unknown command /aio "..tostring(msg))
-        cmds.help()
     end
-end
 
--- Define slash commands and helps for them
--- triggered with /aio <command name>
-helps.help = "prints this list"
-function cmds.help(player)
-    pprint(player, "Available commands:")
-    for k,v in pairs(cmds) do
-        pprint(player, (AIO_SERVER and '.' or '/').."aio "..k.." - "..(helps[k] or "no info"))
+    -- Define slash commands and helps for them
+    -- triggered with /aio <command name>
+    helps.help = "prints this list"
+    function cmds.help(player)
+        pprint(player, "Available commands:")
+        for k,v in pairs(cmds) do
+            pprint(player, (AIO_SERVER and '.' or '/').."aio "..k.." - "..(helps[k] or "no info"))
+        end
     end
-end
-if not AIO_SERVER then
-    helps.reset = "resets local AIO cache - clears saved addons and their saved variables and reloads the UI"
-    function cmds.reset()
-        AIO_RESET()
-        ReloadUI()
+    if not AIO_SERVER then
+        helps.reset = "resets local AIO cache - clears saved addons and their saved variables and reloads the UI"
+        function cmds.reset()
+            AIO_RESET()
+            ReloadUI()
+        end
     end
-end
-helps.trace = "toggles using debug.traceback or _ERRORMESSAGE"
-function cmds.trace(player)
-    AIO_ENABLE_TRACEBACK = not AIO_ENABLE_TRACEBACK
-    pprint(player, "using trace is now", AIO_ENABLE_TRACEBACK and "on" or "off")
-end
-helps.debug = "toggles showing of debug messages"
-function cmds.debug(player)
-    AIO_ENABLE_DEBUG_MSGS = not AIO_ENABLE_DEBUG_MSGS
-    pprint(player, "showing debug messages is now", AIO_ENABLE_DEBUG_MSGS and "on" or "off")
-end
-helps.pcall = "toggles using pcall"
-function cmds.pcall(player)
-    AIO_ENABLE_PCALL = not AIO_ENABLE_PCALL
-    pprint(player, "using pcall is now", AIO_ENABLE_PCALL and "on" or "off")
-end
-helps.printio = "toggles printing all sent and received messages"
-function cmds.printio(player)
-    AIO_ENABLE_MSGPRINT = not AIO_ENABLE_MSGPRINT
-    pprint(player, "printing IO is now", AIO_ENABLE_MSGPRINT and "on" or "off")
+    helps.trace = "toggles using debug.traceback or _ERRORMESSAGE"
+    function cmds.trace(player)
+        AIO_ENABLE_TRACEBACK = not AIO_ENABLE_TRACEBACK
+        pprint(player, "using trace is now", AIO_ENABLE_TRACEBACK and "on" or "off")
+    end
+    helps.debug = "toggles showing of debug messages"
+    function cmds.debug(player)
+        AIO_ENABLE_DEBUG_MSGS = not AIO_ENABLE_DEBUG_MSGS
+        pprint(player, "showing debug messages is now", AIO_ENABLE_DEBUG_MSGS and "on" or "off")
+    end
+    helps.pcall = "toggles using pcall"
+    function cmds.pcall(player)
+        AIO_ENABLE_PCALL = not AIO_ENABLE_PCALL
+        pprint(player, "using pcall is now", AIO_ENABLE_PCALL and "on" or "off")
+    end
+    helps.printio = "toggles printing all sent and received messages"
+    function cmds.printio(player)
+        AIO_ENABLE_MSGPRINT = not AIO_ENABLE_MSGPRINT
+        pprint(player, "printing IO is now", AIO_ENABLE_MSGPRINT and "on" or "off")
+    end
 end
 
 return AIO

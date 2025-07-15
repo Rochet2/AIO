@@ -1,5 +1,9 @@
 local AIO = AIO or require("AIO")
 
+if not AIO.IsMainState() then
+    return
+end
+
 local MyHandlers = AIO.AddHandlers("Kaev", {})
 local AttributesPointsLeft = {}
 local AttributesPointsSpend = {}
