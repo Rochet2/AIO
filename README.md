@@ -37,6 +37,10 @@ The messaging between server and client is coded to be safe
 - make sure your code has asserts in place and is fast. There is a tweakable timeout in AIO.lua just to be sure that the server will not hang if you happen to write bad or abusable code or if a bad user finds a way to hang the system
 - Do check the AIO.lua settings and tweak them to your needs for both client and server respectively. This is important to fend off bad users and make things work better with your setup.
 
+# Eluna multistate support
+Eluna supports multiple lua states. This means that different lua states do not share the same state data and events trigger on different states.
+When using eluna multistate, AIO can be loaded and called on any state so you can send messages from any lua state to the client. However, only the main state can receive messages. This means that all addon code loading should be done on main state only, as it will be the one handling all client to server communication. Any functions that do not work on map states do not exist on map states and only exist on the main lua state and you will get an error if you try to call them in map states.
+
 # Handlers
 AIO has a few handlers by default that are used for the internal codes and you can
 use them if you wish.  
@@ -66,10 +70,13 @@ local AIO = AIO or require("AIO")
 -- Returns true if we are on server side, false if we are on client side
 isServer = AIO.IsServer()
 
+-- Returns true if we are on main lua state, true if we are on client side
+isMainState = AIO.IsMainState()
+
 -- Returns AIO version - note the type is not guaranteed to be a number
 version = AIO.GetVersion()
 
--- Adds the file at given path to files to send to players if called on server side.
+-- Adds the file at given path to files to send to players if called on server side in main state.
 -- The addon code is trimmed according to settings in AIO.lua.
 -- The addon is cached on client side and will be updated only when needed.
 -- Returns false on client side and true on server side. By default the
@@ -89,7 +96,7 @@ end
 -- be updated only when needed. 'name' is an unique name for the addon, usually
 -- you can use the file name or addon name there. Do note that short names are
 -- better since they are sent back and forth to indentify files.
--- The function only exists on server side.
+-- The function only exists on server side. Only on main lua state.
 -- You should call this function only on startup to ensure everyone gets the same
 -- addons and no addon is duplicate.
 AIO.AddAddonCode(name, code)
@@ -125,7 +132,7 @@ AIO.RegisterEvent(name, func)
 -- The function is called before sending and the initial message is passed to it
 -- along with the player if available: func(msg[, player])
 -- In the function you can modify the passed msg and/or return a new one to be
--- used as initial message. Only on server side.
+-- used as initial message. Only on server side. Only on main lua state.
 -- This can be used to send for example initial values (like player stats) for the addons.
 -- If dynamic loading is preferred, you can use the messaging API to request the values
 -- on demand also.
