@@ -3,12 +3,21 @@
 -- LibStub is hereby placed in the Public Domain
 -- Credits: Kaelten, Cladhaire, ckknight, Mikk, Ammo, Nevcairiel, joshborke
 local LIBSTUB_MAJOR, LIBSTUB_MINOR = "LibStub", 2  -- NEVER MAKE THIS AN SVN REVISION! IT NEEDS TO BE USABLE IN ALL REPOS!
-local LibStub = _G[LIBSTUB_MAJOR]
+local LibStub
+if getglobal then
+    LibStub = getglobal(LIBSTUB_MAJOR)
+else
+	LibStub = _G[LIBSTUB_MAJOR]
+end
 
 -- Check to see is this version of the stub is obsolete
 if not LibStub or LibStub.minor < LIBSTUB_MINOR then
 	LibStub = LibStub or {libs = {}, minors = {} }
-	_G[LIBSTUB_MAJOR] = LibStub
+	if setglobal then
+		setglobal(LIBSTUB_MAJOR, LibStub)
+	else
+		_G[LIBSTUB_MAJOR] = LibStub
+	end
 	LibStub.minor = LIBSTUB_MINOR
 	
 	-- LibStub:NewLibrary(major, minor)
@@ -35,7 +44,7 @@ if not LibStub or LibStub.minor < LIBSTUB_MINOR then
 	-- returns the library object if found
 	function LibStub:GetLibrary(major, silent)
 		if not self.libs[major] and not silent then
-			error(("Cannot find a library instance of %q."):format(tostring(major)), 2)
+			error(format("Cannot find a library instance of %q.", tostring(major)), 2)
 		end
 		return self.libs[major], self.minors[major]
 	end
