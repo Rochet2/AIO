@@ -29,7 +29,7 @@ jobs:
       - name: Syntax-check AIO and tests
         run: |
           for f in AIO_Server/AIO.lua AIO_Client/AIO.lua tests/*.lua; do
-            lua5.1 -p "$f"
+            lua5.1 -e "assert(loadfile('$f'))"
           done
 
       - name: Verify server and client AIO.lua stay in sync
