@@ -11,20 +11,22 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Lua and Luacheck
+      - name: Install Lua 5.1
         run: |
           sudo apt-get update
-          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks
-          sudo luarocks --lua-version=5.1 install luacheck
+          sudo apt-get install -y lua5.1
 
       - name: Run unit tests
         run: lua5.1 tests/run.lua
 
       - name: Run Luacheck on core helpers
-        run: |
-          luacheck \
-            AIO_Server/queue.lua AIO_Client/queue.lua \
-            AIO_Server/aio_util.lua AIO_Client/aio_util.lua
+        uses: lunarmodules/luacheck@v1
+        with:
+          args: >-
+            AIO_Server/queue.lua
+            AIO_Client/queue.lua
+            AIO_Server/aio_util.lua
+            AIO_Client/aio_util.lua
 
       - name: Syntax-check AIO and tests
         run: |
