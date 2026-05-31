@@ -40,11 +40,11 @@ files["AIO_Client/aio_util.lua"] = {}
 
 files["AIO_Server/AIO.lua"] = {
     -- Monolith with many Eluna/WoW globals; focus on syntax and obvious issues only.
-    ignore = {"1", "2", "3", "4", "5", "6"},
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
 
 files["AIO_Client/AIO.lua"] = {
-    ignore = {"1", "2", "3", "4", "5", "6"},
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
 
 files["tests/run.lua"] = {
