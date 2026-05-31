@@ -58,9 +58,9 @@ function Queue.size(que)
 end
 
 function Queue.clear(que)
-    local l, r = self:getrange()
+    local l, r = que:getrange()
     for i = l, r do
-        que[idx] = nil
+        que[i] = nil
     end
     que.first, que.last = 0, -1
 end

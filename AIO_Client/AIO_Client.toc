@@ -11,6 +11,7 @@ Dep_LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua
 Dep_Smallfolk\smallfolk.lua
 lualzw-zeros\lualzw.lua
 queue.lua
+aio_util.lua
 
 #core
 AIO.lua

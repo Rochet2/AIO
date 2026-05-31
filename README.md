@@ -12,6 +12,17 @@ Backlink: https://github.com/Rochet2/AIO
 - Copy the `AIO_Server` to your `server_root/lua_scripts/`
 - See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
 - When developing an addon it is recommended to have AIO_ENABLE_PCALL off and sometimes you may need AIO_ENABLE_DEBUG_MSGS on to see some information about what is going on.
+- See [SECURITY.md](SECURITY.md) for the threat model and recommended production settings.
+- See [DEPENDENCIES.md](DEPENDENCIES.md) for vendored libraries and client load order.
+
+# Testing
+Pure Lua modules can be tested outside WoW:
+
+```sh
+lua5.1 tests/run.lua
+```
+
+CI (see `.github/workflows/ci.yml`) also runs Luacheck and verifies `AIO_Server/AIO.lua` and `AIO_Client/AIO.lua` stay identical.
 
 # About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.
@@ -95,7 +106,7 @@ end
 -- according to settings in AIO.lua. The addon is cached on client side and will
 -- be updated only when needed. 'name' is an unique name for the addon, usually
 -- you can use the file name or addon name there. Do note that short names are
--- better since they are sent back and forth to indentify files.
+-- better since they are sent back and forth to identify files.
 -- The function only exists on server side. Only on main lua state.
 -- You should call this function only on startup to ensure everyone gets the same
 -- addons and no addon is duplicate.
@@ -124,7 +135,7 @@ handlertable = AIO.AddHandlers(name, handlertable)
 
 -- Only on main lua state.
 -- Adds a new callback function that is called if a message with the given
--- name is recieved. All parameters the sender sends in the message will
+-- name is received. All parameters the sender sends in the message will
 -- be passed to func when called.
 -- Example message: AIO.Msg():Add(name, ...):Send()
 -- AIO.AddHandlers uses AIO.RegisterEvent internally, so same name can not be used on both.

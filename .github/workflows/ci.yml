@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Lua and Luacheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 luacheck
+
+      - name: Run unit tests
+        run: lua5.1 tests/run.lua
+
+      - name: Run Luacheck
+        run: luacheck .
+
+      - name: Verify server and client AIO.lua stay in sync
+        run: diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
+
+      - name: Verify server and client aio_util.lua stay in sync
+        run: diff -q AIO_Server/aio_util.lua AIO_Client/aio_util.lua
