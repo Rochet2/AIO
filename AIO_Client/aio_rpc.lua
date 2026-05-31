@@ -3,7 +3,7 @@
 ]]
 
 local assert = assert
-local unpack = unpack or table.unpack
+local unpack = _G.unpack or table.unpack
 local select = select
 local type = type
 local print = print
@@ -93,16 +93,13 @@ function M.new(opts)
 
         if server and data[1] > max_block_args then
             error("Received AIO block with over " .. max_block_args .. " arguments. Try using tables instead")
-            return
         end
         handledata(player, unpack(data, 3, data[1] + 2))
     end
 
-    local curmsg = ""
     local function parse_blocks(msg, player, on_block)
         local hooked = timeout_hook
         if hooked then
-            curmsg = msg
             hooked.begin(msg)
         end
 
