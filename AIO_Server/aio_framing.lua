@@ -7,7 +7,6 @@ local ssub = string.sub
 local sbyte = string.byte
 local schar = string.char
 local ceil = math.ceil
-local assert = assert
 
 local M = {}
 

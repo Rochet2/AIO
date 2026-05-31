@@ -3,7 +3,6 @@
 ]]
 
 local tconcat = table.concat
-local assert = assert
 
 local M = {}
 

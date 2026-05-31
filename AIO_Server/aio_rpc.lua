@@ -2,11 +2,7 @@
     Block-oriented RPC over a serialized message blob (Smallfolk by default).
 ]]
 
-local assert = assert
 local unpack = _G.unpack or table.unpack
-local select = select
-local type = type
-local print = print
 
 local M = {}
 
