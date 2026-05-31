@@ -2,8 +2,6 @@
     Block-oriented RPC over a serialized message blob (Smallfolk by default).
 ]]
 
-local unpack = _G.unpack or table.unpack
-
 local M = {}
 
 function M.new(opts)

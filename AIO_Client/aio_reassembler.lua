@@ -130,7 +130,7 @@ function M.new(opts)
         pdata.stored = pdata.stored + #msg
         if cache_space and pdata.stored > cache_space then
             local l, r = pdata.ramque:getrange()
-            for i = l, r - 1 do
+            for _ = l, r - 1 do
                 local msgdata = pdata.ramque:popleft()
                 if msgdata then
                     removeque:gettable()[msgdata.remquepos] = nil
@@ -174,7 +174,7 @@ function M.new(opts)
         end
         local now = get_time()
         local l, r = removeque:getrange()
-        for i = l, r do
+        for _ = l, r do
             local v = removeque:popleft()
             if v then
                 if get_time_diff(now, v.stamp) < cache_time_ms then

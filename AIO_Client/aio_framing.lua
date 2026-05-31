@@ -37,11 +37,11 @@ function M.new(max_payload)
     local uint16_encode = M.uint16_encode
     local uint16_decode = M.uint16_decode
 
-    local self = {
+    local framing = {
         max_payload = max_payload,
     }
 
-    function self:split(payload, message_id)
+    function framing.split(_, payload, message_id)
         if #payload <= max_payload then
             return { short_tag .. payload }
         end
@@ -60,7 +60,7 @@ function M.new(max_payload)
 
     -- Returns complete payload string, or nil if packet is too short / incomplete chunk.
     -- On incomplete long message, returns nil, chunk_table (for tests); production uses reassembler.
-    function self:parse(packet)
+    function framing.parse(_, packet)
         local msgid = ssub(packet, 1, 2)
 
         if msgid == short_tag then
@@ -86,7 +86,7 @@ function M.new(max_payload)
         }
     end
 
-    return self
+    return framing
 end
 
 return M
