@@ -26,7 +26,7 @@ jobs:
             AIO_Server/queue.lua AIO_Client/queue.lua \
             AIO_Server/aio_util.lua AIO_Client/aio_util.lua \
             tests/
-          luacheck --no-global --no-unused --no-redefined --no-max-line-length --no-trailing-space \
+          luacheck --no-global --no-unused --no-redefined --no-max-line-length \
             AIO_Server/AIO.lua AIO_Client/AIO.lua
 
       - name: Verify server and client AIO.lua stay in sync
