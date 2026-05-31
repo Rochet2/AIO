@@ -1,0 +1,11 @@
+* text=auto eol=lf
+
+*.lua text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.toc text eol=lf
+*.txt text eol=lf
+.luacheckrc text eol=lf
+.editorconfig text eol=lf
+.gitignore text eol=lf
