@@ -6,8 +6,11 @@ AIO vendors its dependencies inside `AIO_Server/` and `AIO_Client/`. You do not 
 
 | Module | Server path | Client path | Notes |
 |--------|-------------|-------------|-------|
-| AIO core | `AIO_Server/AIO.lua` | `AIO_Client/AIO.lua` | Must stay identical; CI checks with `diff` |
-| aio_util | `AIO_Server/aio_util.lua` | `AIO_Client/aio_util.lua` | Shared helpers (basename, cache accounting); CI checks with `diff` |
+| AIO core | `AIO_Server/AIO.lua` | `AIO_Client/AIO.lua` | Transport, addon push, handlers; must stay identical |
+| aio_framing | `AIO_Server/aio_framing.lua` | `AIO_Client/aio_framing.lua` | Uint16 wire encoding and message split/parse |
+| aio_reassembler | `AIO_Server/aio_reassembler.lua` | `AIO_Client/aio_reassembler.lua` | Long-message reassembly, TTL, byte caps |
+| aio_rpc | `AIO_Server/aio_rpc.lua` | `AIO_Client/aio_rpc.lua` | Block RPC over Smallfolk |
+| aio_util | `AIO_Server/aio_util.lua` | `AIO_Client/aio_util.lua` | Shared helpers (basename, cache accounting) |
 | Queue | `AIO_Server/queue.lua` | `AIO_Client/queue.lua` | Based on PIL 11.4, with AIO modifications |
 | Smallfolk | `AIO_Server/Dep_Smallfolk/` | `AIO_Client/Dep_Smallfolk/` | Wire serialization |
 | lualzw | `AIO_Server/lualzw-zeros/` | `AIO_Client/lualzw-zeros/` | [Rochet2/lualzw](https://github.com/Rochet2/lualzw) **v1.1.0** (2026-05-31), configured with `skip = { [0] = true }` for the former `zeros` branch wire format |
@@ -39,6 +42,9 @@ Dep_Smallfolk\smallfolk.lua      → require("smallfolk")
 lualzw-zeros\lualzw.lua          → require("lualzw")
 queue.lua                        → require("queue")
 aio_util.lua                     → require("aio_util")
+aio_framing.lua                  → require("aio_framing")
+aio_reassembler.lua              → require("aio_reassembler")
+aio_rpc.lua                      → require("aio_rpc")
 AIO.lua                          → require("AIO") in other addons; loads deps above
 ```
 

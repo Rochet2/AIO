@@ -43,6 +43,7 @@ dofile(script_path .. "test_framing.lua")
 dofile(script_path .. "test_util.lua")
 dofile(script_path .. "test_stored.lua")
 dofile(script_path .. "test_path_legacy.lua")
+dofile(script_path .. "test_reassembler.lua")
 dofile(script_path .. "test_lualzw.lua")
 
 print(string.format("\n%d passed, %d failed", passed, failed))

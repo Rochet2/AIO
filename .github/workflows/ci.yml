@@ -26,10 +26,15 @@ jobs:
           luacheck --config .luacheckrc \
             AIO_Server/queue.lua AIO_Client/queue.lua \
             AIO_Server/aio_util.lua AIO_Client/aio_util.lua \
+            AIO_Server/aio_framing.lua AIO_Client/aio_framing.lua \
+            AIO_Server/aio_reassembler.lua AIO_Client/aio_reassembler.lua \
+            AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua \
             tests/
 
-      - name: Verify server and client AIO.lua stay in sync
-        run: diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
-
-      - name: Verify server and client aio_util.lua stay in sync
-        run: diff -q AIO_Server/aio_util.lua AIO_Client/aio_util.lua
+      - name: Verify server and client shared modules stay in sync
+        run: |
+          diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
+          diff -q AIO_Server/aio_util.lua AIO_Client/aio_util.lua
+          diff -q AIO_Server/aio_framing.lua AIO_Client/aio_framing.lua
+          diff -q AIO_Server/aio_reassembler.lua AIO_Client/aio_reassembler.lua
+          diff -q AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua

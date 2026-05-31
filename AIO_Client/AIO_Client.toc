@@ -12,6 +12,9 @@ Dep_Smallfolk\smallfolk.lua
 lualzw-zeros\lualzw.lua
 queue.lua
 aio_util.lua
+aio_framing.lua
+aio_reassembler.lua
+aio_rpc.lua
 
 #core
 AIO.lua
