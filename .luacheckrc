@@ -41,10 +41,6 @@ files["AIO_Client/aio_util.lua"] = {}
 files["AIO_Server/queue.lua"] = {}
 files["AIO_Client/queue.lua"] = {}
 
-files["tests/*.lua"] = {
-    globals = {"test", "assert_eq", "assert_true", "require", "debug", "package"},
-}
-
 files["AIO_Server/AIO.lua"] = {
     -- Monolith with many Eluna/WoW globals; focus on syntax and obvious issues only.
     ignore = {"1.", "2.", "3.", "4.", "5.", "6."},

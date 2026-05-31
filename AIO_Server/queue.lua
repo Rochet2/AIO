@@ -1,5 +1,5 @@
 local Queue = {}
-function Queue.__index(que, key)
+function Queue.__index(_, key)
     return Queue[key]
 end
 
