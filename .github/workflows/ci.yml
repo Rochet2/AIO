@@ -11,11 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: leafo/gh-actions-lua@v9.3.0
+      - uses: leafo/gh-actions-lua@v9
         with:
-          luaVersion: "5.1.5"
+          luaVersion: "5.1"
 
-      - uses: leafo/gh-actions-luarocks@v4.3.0
+      - uses: leafo/gh-actions-luarocks@v4
 
       - name: Install Luacheck
         run: luarocks install luacheck
