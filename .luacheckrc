@@ -60,7 +60,10 @@ files["AIO_Client/AIO.lua"] = {
 }
 
 files["tests/*.lua"] = {
-    globals = {"require", "package", "string", "table", "math", "debug"},
+    globals = {
+        "require", "package", "string", "table", "math", "debug",
+        "test", "assert_eq", "assert_true",
+    },
 }
 
 files["tests/run.lua"] = {
