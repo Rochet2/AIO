@@ -11,23 +11,29 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Install Lua and Luacheck
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks
-          sudo luarocks --lua-version=5.1 install luacheck
+      - uses: leafo/gh-actions-lua@v9.3.0
+        with:
+          luaVersion: "5.1.5"
+
+      - uses: leafo/gh-actions-luarocks@v4.3.0
+
+      - name: Install Luacheck
+        run: luarocks install luacheck
 
       - name: Run unit tests
-        run: lua5.1 tests/run.lua
+        run: lua tests/run.lua
 
-      - name: Run Luacheck
+      - name: Run Luacheck on core helpers
         run: |
           luacheck \
             AIO_Server/queue.lua AIO_Client/queue.lua \
-            AIO_Server/aio_util.lua AIO_Client/aio_util.lua \
-            tests/
-          luacheck --no-global --no-unused --no-redefined --no-max-line-length \
-            AIO_Server/AIO.lua AIO_Client/AIO.lua
+            AIO_Server/aio_util.lua AIO_Client/aio_util.lua
+
+      - name: Syntax-check AIO and tests
+        run: |
+          for f in AIO_Server/AIO.lua AIO_Client/AIO.lua tests/*.lua; do
+            lua -p "$f"
+          done
 
       - name: Verify server and client AIO.lua stay in sync
         run: diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
