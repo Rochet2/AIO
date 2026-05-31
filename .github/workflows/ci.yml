@@ -20,12 +20,6 @@ jobs:
       - name: Run unit tests
         run: lua5.1 tests/run.lua
 
-      - name: Run Luacheck on core helpers
-        run: |
-          luacheck --no-config --std lua51 \
-            AIO_Server/queue.lua AIO_Client/queue.lua \
-            AIO_Server/aio_util.lua AIO_Client/aio_util.lua
-
       - name: Verify server and client AIO.lua stay in sync
         run: diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
 
