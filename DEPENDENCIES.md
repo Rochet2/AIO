@@ -10,7 +10,7 @@ AIO vendors its dependencies inside `AIO_Server/` and `AIO_Client/`. You do not 
 | aio_util | `AIO_Server/aio_util.lua` | `AIO_Client/aio_util.lua` | Shared helpers (basename, cache accounting); CI checks with `diff` |
 | Queue | `AIO_Server/queue.lua` | `AIO_Client/queue.lua` | Based on PIL 11.4, with AIO modifications |
 | Smallfolk | `AIO_Server/Dep_Smallfolk/` | `AIO_Client/Dep_Smallfolk/` | Wire serialization |
-| lualzw-zeros | `AIO_Server/lualzw-zeros/` | `AIO_Client/lualzw-zeros/` | LZW compression for addon payloads |
+| lualzw | `AIO_Server/lualzw-zeros/` | `AIO_Client/lualzw-zeros/` | [Rochet2/lualzw](https://github.com/Rochet2/lualzw) **v1.1.0** (2026-05-31), configured with `skip = { [0] = true }` for the former `zeros` branch wire format |
 
 ## Server-only dependencies
 

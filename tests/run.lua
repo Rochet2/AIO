@@ -8,6 +8,7 @@ local function add_path(dir)
 end
 
 add_path(root .. "AIO_Server/Dep_Smallfolk/")
+add_path(root .. "AIO_Server/lualzw-zeros/")
 add_path(root .. "AIO_Server/")
 
 local passed, failed = 0, 0
@@ -42,6 +43,7 @@ dofile(script_path .. "test_framing.lua")
 dofile(script_path .. "test_util.lua")
 dofile(script_path .. "test_stored.lua")
 dofile(script_path .. "test_path_legacy.lua")
+dofile(script_path .. "test_lualzw.lua")
 
 print(string.format("\n%d passed, %d failed", passed, failed))
 os.exit(failed > 0 and 1 or 0)
