@@ -59,6 +59,10 @@ files["AIO_Client/AIO.lua"] = {
     ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
 
+files["tests/*.lua"] = {
+    globals = {"require", "package", "string", "table", "math", "debug"},
+}
+
 files["tests/run.lua"] = {
     globals = {"dofile", "os"},
 }

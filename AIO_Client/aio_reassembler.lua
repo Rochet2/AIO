@@ -15,7 +15,7 @@ function M.new(opts)
     assert(opts.cache_time_ms, "cache_time_ms required")
 
     local framing = opts.framing
-    local NewQueue = opts.NewQueue
+    local create_queue = opts.NewQueue
     local get_time = opts.get_time
     local get_time_diff = opts.get_time_diff
     local get_message_stored_size = opts.get_message_stored_size
@@ -25,7 +25,7 @@ function M.new(opts)
     local msg_id_max = opts.msg_id_max or 2^16 - 767
 
     local plrdata = {}
-    local removeque = NewQueue()
+    local removeque = create_queue()
 
     local function remove_data(peer_id, msgid)
         local pdata = plrdata[peer_id]
@@ -59,7 +59,7 @@ function M.new(opts)
         if not plrdata[peer_id] then
             plrdata[peer_id] = {
                 stored = 0,
-                ramque = NewQueue(),
+                ramque = create_queue(),
                 MSG_GUID = msg_id_min,
             }
         end

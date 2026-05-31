@@ -23,13 +23,19 @@ jobs:
 
       - name: Run Luacheck on core helpers and tests
         run: |
+          set -o pipefail
           luacheck --config .luacheckrc \
             AIO_Server/queue.lua AIO_Client/queue.lua \
             AIO_Server/aio_util.lua AIO_Client/aio_util.lua \
             AIO_Server/aio_framing.lua AIO_Client/aio_framing.lua \
             AIO_Server/aio_reassembler.lua AIO_Client/aio_reassembler.lua \
             AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua \
-            tests/
+            tests/ 2>&1 | tee /tmp/luacheck.log || (
+            echo "::group::Luacheck output"
+            cat /tmp/luacheck.log
+            echo "::endgroup::"
+            exit 1
+          )
 
       - name: Verify server and client shared modules stay in sync
         run: |

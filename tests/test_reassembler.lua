@@ -1,7 +1,7 @@
 local aio_framing = require("aio_framing")
 local aio_reassembler = require("aio_reassembler")
 local aio_util = require("aio_util")
-local NewQueue = require("queue")
+local create_queue = require("queue")
 
 local AIO_MsgLen = 200
 local framing = aio_framing.new(AIO_MsgLen)
@@ -9,7 +9,7 @@ local framing = aio_framing.new(AIO_MsgLen)
 local function make_reassembler(cache_space)
     return aio_reassembler.new({
         framing = framing,
-        NewQueue = NewQueue,
+        NewQueue = create_queue,
         get_time = function() return 1000 end,
         get_time_diff = function(now, then_) return now - then_ end,
         get_message_stored_size = aio_util.getMessageStoredSize,
