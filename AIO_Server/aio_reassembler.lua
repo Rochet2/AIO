@@ -7,22 +7,22 @@ local tconcat = table.concat
 local M = {}
 
 function M.new(opts)
-    assert(opts.framing, "framing required")
-    assert(opts.NewQueue, "NewQueue required")
-    assert(opts.get_time, "get_time required")
-    assert(opts.get_time_diff, "get_time_diff required")
-    assert(opts.get_message_stored_size, "get_message_stored_size required")
-    assert(opts.cache_time_ms, "cache_time_ms required")
+    assert(opts["framing"], "framing required")
+    assert(opts["NewQueue"], "NewQueue required")
+    assert(opts["get_time"], "get_time required")
+    assert(opts["get_time_diff"], "get_time_diff required")
+    assert(opts["get_message_stored_size"], "get_message_stored_size required")
+    assert(opts["cache_time_ms"], "cache_time_ms required")
 
-    local framing = opts.framing
-    local create_queue = opts.NewQueue
-    local get_time = opts.get_time
-    local get_time_diff = opts.get_time_diff
-    local get_message_stored_size = opts.get_message_stored_size
-    local cache_space = opts.cache_space
-    local cache_time_ms = opts.cache_time_ms
-    local msg_id_min = opts.msg_id_min or 1
-    local msg_id_max = opts.msg_id_max or 2^16 - 767
+    local framing = opts["framing"]
+    local create_queue = opts["NewQueue"]
+    local get_time = opts["get_time"]
+    local get_time_diff = opts["get_time_diff"]
+    local get_message_stored_size = opts["get_message_stored_size"]
+    local cache_space = opts["cache_space"]
+    local cache_time_ms = opts["cache_time_ms"]
+    local msg_id_min = opts["msg_id_min"] or 1
+    local msg_id_max = opts["msg_id_max"] or 2^16 - 767
 
     local plrdata = {}
     local removeque = create_queue()

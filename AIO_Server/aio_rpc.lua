@@ -7,24 +7,24 @@ local unpack = _G.unpack or table.unpack
 local M = {}
 
 function M.new(opts)
-    assert(opts.dumps, "dumps required")
-    assert(opts.loads, "loads required")
-    assert(opts.pcall, "pcall required")
-    assert(opts.get_handlers, "get_handlers required")
+    assert(opts["dumps"], "dumps required")
+    assert(opts["loads"], "loads required")
+    assert(opts["pcall"], "pcall required")
+    assert(opts["get_handlers"], "get_handlers required")
 
-    local dumps = opts.dumps
-    local loads = opts.loads
-    local pcall_fn = opts.pcall
-    local get_handlers = opts.get_handlers
-    local debug_fn = opts.debug or function() end
-    local enable_msgprint = opts.enable_msgprint
-    local server = opts.server
-    local max_block_args = opts.max_block_args or 15
-    local timeout_hook = opts.timeout_hook
+    local dumps = opts["dumps"]
+    local loads = opts["loads"]
+    local pcall_fn = opts["pcall"]
+    local get_handlers = opts["get_handlers"]
+    local debug_fn = opts["debug"] or function() end
+    local enable_msgprint = opts["enable_msgprint"]
+    local server = opts["server"]
+    local max_block_args = opts["max_block_args"] or 15
+    local timeout_hook = opts["timeout_hook"]
 
     local send_fn
     local msgmt = {}
-    function msgmt.__index(tbl, key)
+    function msgmt.__index(_, key)
         return msgmt[key]
     end
 
