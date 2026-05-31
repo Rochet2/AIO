@@ -248,7 +248,7 @@ local loadstring = loadstring or load -- loadstring name varies with lua 5.1 and
 local unpack = unpack or table.unpack -- unpack place varies with lua 5.1 and 5.2
 -- server client compatibility (milliseconds on both sides)
 local AIO_GetTime = os and function() return os.time() * 1000 end or function() return GetTime() * 1000 end
-local AIO_GetTimeDiff = function(now, then_) return now - then_ end
+local AIO_GetTimeDiff = function(now, earlier) return now - earlier end
 
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
