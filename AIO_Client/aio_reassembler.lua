@@ -74,6 +74,15 @@ function M.new(opts)
         end
     end
 
+    local function all_parts_present(parts)
+        for i = 1, parts.n do
+            if not parts[i] then
+                return false
+            end
+        end
+        return true
+    end
+
     local reassembler = {}
 
     function reassembler.split_payload(_, peer_id, payload)
@@ -142,7 +151,7 @@ function M.new(opts)
             end
         end
 
-        if #data.parts == data.parts.n then
+        if all_parts_present(data.parts) then
             local cat = tconcat(data.parts)
             remove_data(peer_id, message_id)
             return cat
