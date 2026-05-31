@@ -1,68 +1,76 @@
 local M = {}
 Smallfolk = M
 local expect_object, dump_object
-local error, tostring, pairs, type, floor, huge, concat = error, tostring, pairs, type, math.floor, math.huge, table.concat
+local error, tostring, pairs, type, floor, concat = error, tostring, pairs, type, math.floor, table.concat
+local string_find = string.find
+local gsub = string.gsub
+local sub = string.sub
+local format = string.format
 
 local dump_type = {}
 
+local len = AIO_LuaCompat.len
+local huge = AIO_LuaCompat.math_huge
+local print = AIO_LuaCompat.print -- not needed, but useful for debugging
+
 function dump_type:string(nmemo, memo, acc)
-	local nacc = #acc
+	local nacc = len(acc)
 	acc[nacc + 1] = '"'
-	acc[nacc + 2] = self:gsub('"', '""')
+	acc[nacc + 2] = gsub(self, '"', '""')
 	acc[nacc + 3] = '"'
 	return nmemo
 end
 
 function dump_type:number(nmemo, memo, acc)
-	acc[#acc + 1] = ("%.17g"):format(self)
+	acc[len(acc) + 1] = format("%.17g", self)
 	return nmemo
 end
 
 function dump_type:table(nmemo, memo, acc)
     --[[
 	if memo[self] then
-		acc[#acc + 1] = '@'
-		acc[#acc + 1] = tostring(memo[self])
+		acc[len(acc) + 1] = '@'
+		acc[len(acc) + 1] = tostring(memo[self])
 		return nmemo
 	end
 	nmemo = nmemo + 1
     ]]
 	memo[self] = nmemo
-	acc[#acc + 1] = '{'
-	local nself = #self
+	acc[len(acc) + 1] = '{'
+	local nself = len(self)
 	for i = 1, nself do -- don't use ipairs here, we need the gaps
 		nmemo = dump_object(self[i], nmemo, memo, acc)
-		acc[#acc + 1] = ','
+		acc[len(acc) + 1] = ','
 	end
 	for k, v in pairs(self) do
 		if type(k) ~= 'number' or floor(k) ~= k or k < 1 or k > nself then
 			nmemo = dump_object(k, nmemo, memo, acc)
-			acc[#acc + 1] = ':'
+			acc[len(acc) + 1] = ':'
 			nmemo = dump_object(v, nmemo, memo, acc)
-			acc[#acc + 1] = ','
+			acc[len(acc) + 1] = ','
 		end
 	end
-	acc[#acc] = acc[#acc] == '{' and '{}' or '}'
+	acc[len(acc)] = acc[len(acc)] == '{' and '{}' or '}'
 	return nmemo
 end
 
 function dump_object(object, nmemo, memo, acc)
 	if object == true then
-		acc[#acc + 1] = 't'
+		acc[len(acc) + 1] = 't'
 	elseif object == false then
-		acc[#acc + 1] = 'f'
+		acc[len(acc) + 1] = 'f'
 	elseif object == nil then
-		acc[#acc + 1] = 'n'
+		acc[len(acc) + 1] = 'n'
 	elseif object ~= object then
-		if (''..object):sub(1,1) == '-' then
-			acc[#acc + 1] = 'N'
+		if sub(''..object,1,1) == '-' then
+			acc[len(acc) + 1] = 'N'
 		else
-			acc[#acc + 1] = 'Q'
+			acc[len(acc) + 1] = 'Q'
 		end
 	elseif object == huge then
-		acc[#acc + 1] = 'I'
+		acc[len(acc) + 1] = 'I'
 	elseif object == -huge then
-		acc[#acc + 1] = 'i'
+		acc[len(acc) + 1] = 'i'
 	else
 		local t = type(object)
 		if not dump_type[t] then
@@ -89,19 +97,19 @@ local nonzero_digit = {['1'] = true, ['2'] = true, ['3'] = true, ['4'] = true, [
 local is_digit = {['0'] = true, ['1'] = true, ['2'] = true, ['3'] = true, ['4'] = true, ['5'] = true, ['6'] = true, ['7'] = true, ['8'] = true, ['9'] = true}
 local function expect_number(string, start)
 	local i = start
-	local head = string:sub(i, i)
+	local head = sub(string, i, i)
 	if head == '-' then
 		i = i + 1
-		head = string:sub(i, i)
+		head = sub(string, i, i)
 	end
 	if nonzero_digit[head] then
 		repeat
 			i = i + 1
-			head = string:sub(i, i)
+			head = sub(string, i, i)
 		until not is_digit[head]
 	elseif head == '0' then
 		i = i + 1
-		head = string:sub(i, i)
+		head = sub(string, i, i)
 	else
 		invalid(i)
 	end
@@ -109,7 +117,7 @@ local function expect_number(string, start)
 		local oldi = i
 		repeat
 			i = i + 1
-			head = string:sub(i, i)
+			head = sub(string, i, i)
 		until not is_digit[head]
 		if i == oldi + 1 then
 			invalid(i)
@@ -117,20 +125,20 @@ local function expect_number(string, start)
 	end
 	if head == 'e' or head == 'E' then
 		i = i + 1
-		head = string:sub(i, i)
+		head = sub(string, i, i)
 		if head == '+' or head == '-' then
 			i = i + 1
-			head = string:sub(i, i)
+			head = sub(string, i, i)
 		end
 		if not is_digit[head] then
 			invalid(i)
 		end
 		repeat
 			i = i + 1
-			head = string:sub(i, i)
+			head = sub(string, i, i)
 		until not is_digit[head]
 	end
-	return tonumber(string:sub(start, i - 1)), i
+	return tonumber(sub(string, start, i - 1)), i
 end
 
 local expect_object_head = {
@@ -144,9 +152,17 @@ local expect_object_head = {
 	['"'] = function(string, i)
 		local nexti = i - 1
 		repeat
-			nexti = string:find('"', nexti + 1, true) + 1
-		until string:sub(nexti, nexti) ~= '"'
-		return string:sub(i, nexti - 2):gsub('""', '"'), nexti
+			if string_find(string, '"', nexti + 1, true) == nil then
+				-- print("Unmatched quotes in string:", 'plöö', sub(string, nexti + 1), 'plöö')
+				error(string)
+			end
+			local nexta = nexti
+			nexti = string_find(string, '"', nexti + 1, true) + 1
+			--print("Q1: ", "'"..sub(string, nexta+1, nexti).."'")
+			--print("Q2: ", sub(string, nexti, nexti))
+			--print("Q3: ", sub(string, nexti + 1))
+		until sub(string, nexti, nexti) ~= '"'
+		return gsub(sub(string, i, nexti - 2), '""', '"'), nexti
 	end,
 	['0'] = function(string, i)
 		return expect_number(string, i - 1)
@@ -154,20 +170,20 @@ local expect_object_head = {
 	['{'] = function(string, i, tables)
 		local nt, k, v = {}
 		local j = 1
-		tables[#tables + 1] = nt
-		if string:sub(i, i) == '}' then
+		tables[len(tables) + 1] = nt
+		if sub(string, i, i) == '}' then
 			return nt, i + 1
 		end
 		while true do
 			k, i = expect_object(string, i, tables)
-			if string:sub(i, i) == ':' then
+			if sub(string, i, i) == ':' then
 				v, i = expect_object(string, i + 1, tables)
 				nt[k] = v
 			else
 				nt[j] = k
 				j = j + 1
 			end
-			local head = string:sub(i, i)
+			local head = sub(string, i, i)
 			if head == ',' then
 				i = i + 1
 			elseif head == '}' then
@@ -182,7 +198,7 @@ local expect_object_head = {
 		local match = string:match('^%d+', i)
 		local ref = tonumber(match)
 		if tables[ref] then
-			return tables[ref], i + #match
+			return tables[ref], i + len(match)
 		end
 		invalid(i)
 	end,
@@ -201,7 +217,7 @@ expect_object_head['-'] = expect_object_head['0']
 expect_object_head['.'] = expect_object_head['0']
 
 expect_object = function(string, i, tables)
-	local head = string:sub(i, i)
+	local head = sub(string, i, i)
 	if expect_object_head[head] then
 		return expect_object_head[head](string, i + 1, tables)
 	end
@@ -209,10 +225,18 @@ expect_object = function(string, i, tables)
 end
 
 function M.loads(string, maxsize)
-	if #string > (maxsize or 10000) then
+	print("M.loads:", len(string), maxsize)
+	if len(string) > (maxsize or 10000) then
 		error 'input too large'
 	end
 	return (expect_object(string, 1, {}))
 end
+
+-- Tests
+local tbl = {1/0, 0/0, -(1/0), -(0/0), huge, -huge, true, false, nil, "example string", 123.345, {"key1", "key2", 3, 4, 5, 6, 7, 8, 9, 10}, {a = "b", c = "d"}, {1, 2, 3}, {1, 2, {3, 4}}, {1, 2, {3, 4}, a = "b", c = "d"}, {}}
+local data = M.loads(M.dumps(tbl))
+-- print(M.dumps(tbl))
+-- print(M.dumps(data))
+print("smallfolk works:", M.dumps(tbl) == M.dumps(data))
 
 return M

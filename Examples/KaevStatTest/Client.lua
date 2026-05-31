@@ -7,11 +7,18 @@ local MyHandlers = AIO.AddHandlers("Kaev", {})
 
 -- Attribute window
 local frameAttributes = CreateFrame("Frame", "frameAttributes", UIParent)
-frameAttributes:SetSize(200, 300)
+frameAttributes:SetWidth(200)
+frameAttributes:SetHeight(300)
 frameAttributes:SetMovable(true)
 frameAttributes:EnableMouse(true)
 frameAttributes:RegisterForDrag("LeftButton")
-frameAttributes:SetPoint("CENTER")
+frameAttributes:SetPoint("CENTER", nil)
+-- AchievementFrame doesnt exist on vanilla wow so we use a solid color instead
+local FrameTexture = frameAttributes:CreateTexture("FrameTexture", "BACKGROUND")
+FrameTexture:SetPoint("TOPLEFT", 5, -5)
+FrameTexture:SetPoint("BOTTOMRIGHT", -5, 5)
+-- brown rgba color
+FrameTexture:SetTexture(139/255,69/255,19/255, 1)
 frameAttributes:SetBackdrop(
 {
     bgFile = "Interface/AchievementFrame/UI-Achievement-Parchment-Horizontal",
@@ -20,20 +27,23 @@ frameAttributes:SetBackdrop(
     insets = { left = 5, right = 5, top = 5, bottom = 5 }
 })
 -- Drag & Drop
-frameAttributes:SetScript("OnDragStart", frameAttributes.StartMoving)
-frameAttributes:SetScript("OnHide", frameAttributes.StopMovingOrSizing)
-frameAttributes:SetScript("OnDragStop", frameAttributes.StopMovingOrSizing)
+frameAttributes:SetScript("OnShow", function(a1, a2) AIO.print("XX", this, frameAttributes, this == frameAttributes, "YY") end)
+frameAttributes:SetScript("OnDragStart", function() frameAttributes:StartMoving() end)
+frameAttributes:SetScript("OnHide", function() frameAttributes:StopMovingOrSizing() end)
+frameAttributes:SetScript("OnDragStop", function() frameAttributes:StopMovingOrSizing() end)
 frameAttributes:Hide()
 
 -- Close button
 local buttonAttributesClose = CreateFrame("Button", "buttonAttributesClose", frameAttributes, "UIPanelCloseButton")
 buttonAttributesClose:SetPoint("TOPRIGHT", -5, -5)
 buttonAttributesClose:EnableMouse(true)
-buttonAttributesClose:SetSize(27, 27)
+buttonAttributesClose:SetWidth(27)
+buttonAttributesClose:SetHeight(27)
 
 -- Title bar
 local frameAttributesTitleBar = CreateFrame("Frame", "frameAttributesTitleBar", frameAttributes, nil)
-frameAttributesTitleBar:SetSize(135, 25)
+frameAttributesTitleBar:SetWidth(135)
+frameAttributesTitleBar:SetHeight(25)
 frameAttributesTitleBar:SetBackdrop(
 {
     bgFile = "Interface/CHARACTERFRAME/UI-Party-Background",
@@ -47,30 +57,35 @@ frameAttributesTitleBar:SetPoint("TOP", 0, 9)
 
 local fontAttributesTitleText = frameAttributesTitleBar:CreateFontString("fontAttributesTitleText")
 fontAttributesTitleText:SetFont("Fonts\\FRIZQT__.TTF", 13)
-fontAttributesTitleText:SetSize(190, 5)
+fontAttributesTitleText:SetWidth(190)
+fontAttributesTitleText:SetHeight(5)
 fontAttributesTitleText:SetPoint("CENTER", 0, 0)
 fontAttributesTitleText:SetText("|cffFFC125Attribute Points|r")
 
 -- Attribute points left
 local fontAttributesPointsLeft = frameAttributes:CreateFontString("fontAttributesPointsLeft")
 fontAttributesPointsLeft:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesPointsLeft:SetSize(50, 5)
+fontAttributesPointsLeft:SetWidth(50)
+fontAttributesPointsLeft:SetHeight(5)
 fontAttributesPointsLeft:SetPoint("TOPLEFT", 107, -25)
 
 -- Strength
 local fontAttributesStrength = frameAttributes:CreateFontString("fontAttributesStrength")
 fontAttributesStrength:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesStrength:SetSize(137, 5)
+fontAttributesStrength:SetWidth(137)
+fontAttributesStrength:SetHeight(5)
 fontAttributesStrength:SetPoint("TOPLEFT", -20, -45)
 fontAttributesStrength:SetText("|cFF000000Strength|r")
 
 local fontAttributesStrengthValue = frameAttributes:CreateFontString("fontAttributesStrengthValue")
 fontAttributesStrengthValue:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesStrengthValue:SetSize(50, 5)
+fontAttributesStrengthValue:SetWidth(50)
+fontAttributesStrengthValue:SetHeight(5)
 fontAttributesStrengthValue:SetPoint("TOPLEFT", 107, -45)
 
 local buttonAttributesIncreaseStrength = CreateFrame("Button", "buttonAttributesIncreaseStrength", frameAttributes, nil)
-buttonAttributesIncreaseStrength:SetSize(20, 20)
+buttonAttributesIncreaseStrength:SetWidth(20)
+buttonAttributesIncreaseStrength:SetHeight(20)
 buttonAttributesIncreaseStrength:SetPoint("TOPLEFT", 144, -39)
 buttonAttributesIncreaseStrength:EnableMouse(true)
 buttonAttributesIncreaseStrength:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-NextPage-Up")
@@ -79,7 +94,8 @@ buttonAttributesIncreaseStrength:SetPushedTexture("Interface/BUTTONS/UI-Spellboo
 buttonAttributesIncreaseStrength:SetScript("OnMouseUp", function() AIO.Handle("Kaev", "AttributesIncrease", 1) end)
        
 local buttonAttributesDecreaseStrength = CreateFrame("Button", "buttonAttributesDecreaseStrength", frameAttributes, nil)
-buttonAttributesDecreaseStrength:SetSize(20, 20)
+buttonAttributesDecreaseStrength:SetWidth(20)
+buttonAttributesDecreaseStrength:SetHeight(20)
 buttonAttributesDecreaseStrength:SetPoint("TOPLEFT", 104, -39)
 buttonAttributesDecreaseStrength:EnableMouse(true)
 buttonAttributesDecreaseStrength:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-PrevPage-Up")
@@ -90,17 +106,20 @@ buttonAttributesDecreaseStrength:SetScript("OnMouseUp", function() AIO.Handle("K
 -- Agility
 local fontAttributesAgility = frameAttributes:CreateFontString("fontAttributesAgility")
 fontAttributesAgility:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesAgility:SetSize(137, 5)
+fontAttributesAgility:SetWidth(137)
+fontAttributesAgility:SetHeight(5)
 fontAttributesAgility:SetPoint("TOPLEFT", -20, -65)
 fontAttributesAgility:SetText("|cFF000000Agility|r")
 
 local fontAttributesAgilityValue = frameAttributes:CreateFontString("fontAttributesAgilityValue")
 fontAttributesAgilityValue:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesAgilityValue:SetSize(50, 5)
+fontAttributesAgilityValue:SetWidth(50)
+fontAttributesAgilityValue:SetHeight(5)
 fontAttributesAgilityValue:SetPoint("TOPLEFT", 107, -65)
 
 local buttonAttributesIncreaseAgility = CreateFrame("Button", "buttonAttributesIncreaseAgility", frameAttributes, nil)
-buttonAttributesIncreaseAgility:SetSize(20, 20)
+buttonAttributesIncreaseAgility:SetWidth(20)
+buttonAttributesIncreaseAgility:SetHeight(20)
 buttonAttributesIncreaseAgility:SetPoint("TOPLEFT", 144, -59)
 buttonAttributesIncreaseAgility:EnableMouse(true)
 buttonAttributesIncreaseAgility:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-NextPage-Up")
@@ -109,7 +128,8 @@ buttonAttributesIncreaseAgility:SetPushedTexture("Interface/BUTTONS/UI-Spellbook
 buttonAttributesIncreaseAgility:SetScript("OnMouseUp", function() AIO.Handle("Kaev", "AttributesIncrease", 2) end)
        
 local buttonAttributesDecreaseAgility = CreateFrame("Button", "buttonAttributesDecreaseAgility", frameAttributes, nil)
-buttonAttributesDecreaseAgility:SetSize(20, 20)
+buttonAttributesDecreaseAgility:SetWidth(20)
+buttonAttributesDecreaseAgility:SetHeight(20)
 buttonAttributesDecreaseAgility:SetPoint("TOPLEFT", 104, -59)
 buttonAttributesDecreaseAgility:EnableMouse(true)
 buttonAttributesDecreaseAgility:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-PrevPage-Up")
@@ -120,17 +140,20 @@ buttonAttributesDecreaseAgility:SetScript("OnMouseUp", function() AIO.Handle("Ka
 -- Stamina
 local fontAttributesStamina = frameAttributes:CreateFontString("fontAttributesStamina")
 fontAttributesStamina:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesStamina:SetSize(137, 5)
+fontAttributesStamina:SetWidth(137)
+fontAttributesStamina:SetHeight(5)
 fontAttributesStamina:SetPoint("TOPLEFT", -20, -85)
 fontAttributesStamina:SetText("|cFF000000Stamina|r")
 
 local fontAttributesStaminaValue = frameAttributes:CreateFontString("fontAttributesStaminaValue")
 fontAttributesStaminaValue:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesStaminaValue:SetSize(50, 5)
+fontAttributesStaminaValue:SetWidth(50)
+fontAttributesStaminaValue:SetHeight(5)
 fontAttributesStaminaValue:SetPoint("TOPLEFT", 107, -85)
 
 local buttonAttributesIncreaseStamina = CreateFrame("Button", "buttonAttributesIncreaseStamina", frameAttributes, nil)
-buttonAttributesIncreaseStamina:SetSize(20, 20)
+buttonAttributesIncreaseStamina:SetWidth(20)
+buttonAttributesIncreaseStamina:SetHeight(20)
 buttonAttributesIncreaseStamina:SetPoint("TOPLEFT", 144, -79)
 buttonAttributesIncreaseStamina:EnableMouse(true)
 buttonAttributesIncreaseStamina:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-NextPage-Up")
@@ -139,7 +162,8 @@ buttonAttributesIncreaseStamina:SetPushedTexture("Interface/BUTTONS/UI-Spellbook
 buttonAttributesIncreaseStamina:SetScript("OnMouseUp", function() AIO.Handle("Kaev", "AttributesIncrease", 3) end)
        
 local buttonAttributesDecreaseStamina = CreateFrame("Button", "buttonAttributesDecreaseStamina", frameAttributes, nil)
-buttonAttributesDecreaseStamina:SetSize(20, 20)
+buttonAttributesDecreaseStamina:SetWidth(20)
+buttonAttributesDecreaseStamina:SetHeight(20)
 buttonAttributesDecreaseStamina:SetPoint("TOPLEFT", 104, -79)
 buttonAttributesDecreaseStamina:EnableMouse(true)
 buttonAttributesDecreaseStamina:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-PrevPage-Up")
@@ -150,17 +174,20 @@ buttonAttributesDecreaseStamina:SetScript("OnMouseUp", function() AIO.Handle("Ka
 -- Intellect
 local fontAttributesIntellect = frameAttributes:CreateFontString("fontAttributesIntellect")
 fontAttributesIntellect:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesIntellect:SetSize(137, 5)
+fontAttributesIntellect:SetWidth(137)
+fontAttributesIntellect:SetHeight(5)
 fontAttributesIntellect:SetPoint("TOPLEFT", -20, -105)
 fontAttributesIntellect:SetText("|cFF000000Intellect|r")
 
 local fontAttributesIntellectValue = frameAttributes:CreateFontString("fontAttributesIntellectValue")
 fontAttributesIntellectValue:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesIntellectValue:SetSize(50, 5)
+fontAttributesIntellectValue:SetWidth(50)
+fontAttributesIntellectValue:SetHeight(5)
 fontAttributesIntellectValue:SetPoint("TOPLEFT", 107, -105)
 
 local buttonAttributesIncreaseIntellect = CreateFrame("Button", "buttonAttributesIncreaseIntellect", frameAttributes, nil)
-buttonAttributesIncreaseIntellect:SetSize(20, 20)
+buttonAttributesIncreaseIntellect:SetWidth(20)
+buttonAttributesIncreaseIntellect:SetHeight(20)
 buttonAttributesIncreaseIntellect:SetPoint("TOPLEFT", 144, -99)
 buttonAttributesIncreaseIntellect:EnableMouse(true)
 buttonAttributesIncreaseIntellect:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-NextPage-Up")
@@ -169,7 +196,8 @@ buttonAttributesIncreaseIntellect:SetPushedTexture("Interface/BUTTONS/UI-Spellbo
 buttonAttributesIncreaseIntellect:SetScript("OnMouseUp", function() AIO.Handle("Kaev", "AttributesIncrease", 4) end)
        
 local buttonAttributesDecreaseIntellect = CreateFrame("Button", "buttonAttributesDecreaseIntellect", frameAttributes, nil)
-buttonAttributesDecreaseIntellect:SetSize(20, 20)
+buttonAttributesDecreaseIntellect:SetWidth(20)
+buttonAttributesDecreaseIntellect:SetHeight(20)
 buttonAttributesDecreaseIntellect:SetPoint("TOPLEFT", 104, -99)
 buttonAttributesDecreaseIntellect:EnableMouse(true)
 buttonAttributesDecreaseIntellect:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-PrevPage-Up")
@@ -180,17 +208,20 @@ buttonAttributesDecreaseIntellect:SetScript("OnMouseUp", function() AIO.Handle("
 -- Spirit
 local fontAttributesSpirit = frameAttributes:CreateFontString("fontAttributesSpirit")
 fontAttributesSpirit:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesSpirit:SetSize(137, 5)
+fontAttributesSpirit:SetWidth(137)
+fontAttributesSpirit:SetHeight(5)
 fontAttributesSpirit:SetPoint("TOPLEFT", -20, -125)
 fontAttributesSpirit:SetText("|cFF000000Spirit|r")
 
 local fontAttributesSpiritValue = frameAttributes:CreateFontString("fontAttributesSpiritValue")
 fontAttributesSpiritValue:SetFont("Fonts\\FRIZQT__.TTF", 15)
-fontAttributesSpiritValue:SetSize(50, 5)
+fontAttributesSpiritValue:SetWidth(50)
+fontAttributesSpiritValue:SetHeight(5)
 fontAttributesSpiritValue:SetPoint("TOPLEFT", 107, -125)
 
 local buttonAttributesIncreaseSpirit = CreateFrame("Button", "buttonAttributesIncreaseSpirit", frameAttributes, nil)
-buttonAttributesIncreaseSpirit:SetSize(20, 20)
+buttonAttributesIncreaseSpirit:SetWidth(20)
+buttonAttributesIncreaseSpirit:SetHeight(20)
 buttonAttributesIncreaseSpirit:SetPoint("TOPLEFT", 144, -119)
 buttonAttributesIncreaseSpirit:EnableMouse(true)
 buttonAttributesIncreaseSpirit:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-NextPage-Up")
@@ -199,7 +230,8 @@ buttonAttributesIncreaseSpirit:SetPushedTexture("Interface/BUTTONS/UI-SpellbookI
 buttonAttributesIncreaseSpirit:SetScript("OnMouseUp", function() AIO.Handle("Kaev", "AttributesIncrease", 5) end)
        
 buttonAttributesDecreaseSpirit = CreateFrame("Button", "buttonAttributesDecreaseSpirit", frameAttributes, nil)
-buttonAttributesDecreaseSpirit:SetSize(20, 20)
+buttonAttributesDecreaseSpirit:SetWidth(20)
+buttonAttributesDecreaseSpirit:SetHeight(20)
 buttonAttributesDecreaseSpirit:SetPoint("TOPLEFT", 104, -119)
 buttonAttributesDecreaseSpirit:EnableMouse(true)
 buttonAttributesDecreaseSpirit:SetNormalTexture("Interface/BUTTONS/UI-SpellbookIcon-PrevPage-Up")

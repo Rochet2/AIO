@@ -6,8 +6,9 @@
 ## SavedVariablesPerCharacter: AIO_sv_char
 
 #dependencies
+lua_compat.lua
 Dep_LibWindow-1.1\LibStub.lua
-Dep_LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua
+#Dep_LibWindow-1.1\LibWindow-1.1\LibWindow-1.1.lua
 Dep_Smallfolk\smallfolk.lua
 lualzw-zeros\lualzw.lua
 queue.lua

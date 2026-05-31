@@ -25,7 +25,7 @@ else
     -- When we receive the PingPong message on client, print pong and the time it took to
     -- go from client to server to client.
     function HandlePingPong(player, msg)
-        print(tostring(msg), time()-senttime)
+        AIO.print(tostring(msg), time()-senttime)
     end
     
     -- just incase we are overwriting someone's function ..

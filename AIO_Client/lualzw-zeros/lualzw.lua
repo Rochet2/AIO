@@ -24,9 +24,9 @@ SOFTWARE.
 
 local char = string.char
 local type = type
-local select = select
 local sub = string.sub
 local tconcat = table.concat
+local length = AIO_LuaCompat.len
 
 local basedictcompress = {}
 local basedictdecompress = {}
@@ -53,7 +53,7 @@ local function compress(input)
     if type(input) ~= "string" then
         return nil, "string expected, got "..type(input)
     end
-    local len = #input
+    local len = length(input)
     if len <= 1 then
         return "u"..input
     end
@@ -74,7 +74,7 @@ local function compress(input)
                 return nil, "algorithm error, could not fetch word"
             end
             result[n] = write
-            resultlen = resultlen + #write
+            resultlen = resultlen + length(write)
             n = n+1
             if  len <= resultlen then
                 return "u"..input
@@ -86,7 +86,7 @@ local function compress(input)
         end
     end
     result[n] = basedictcompress[word] or dict[word]
-    resultlen = resultlen+#result[n]
+    resultlen = resultlen+length(result[n])
     n = n+1
     if  len <= resultlen then
         return "u"..input
@@ -112,7 +112,7 @@ local function decompress(input)
         return nil, "string expected, got "..type(input)
     end
 
-    if #input < 1 then
+    if length(input) < 1 then
         return nil, "invalid input - not a compressed string"
     end
 
@@ -123,7 +123,7 @@ local function decompress(input)
         return nil, "invalid input - not a compressed string"
     end
     input = sub(input, 2)
-    local len = #input
+    local len = length(input)
 
     if len < 2 then
         return nil, "invalid input - not a compressed string"

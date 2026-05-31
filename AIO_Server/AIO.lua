@@ -265,7 +265,7 @@ assert(#AIO_ServerPrefix == #AIO_ClientPrefix)
 -- on different patches the limit varies, on 3.3.5 it is exactly 3004 and on cataclysm 2^23
 -- thus we use 2560 that is about 10 times more data and below both max values. Too high value can crash client.
 -- Change if you need to :)
-local AIO_MsgLen = (AIO_SERVER and 2560 or 255) -1 -#AIO_ServerPrefix -#AIO_ShortMsg -- remove \t, prefix, msg ID
+local AIO_MsgLen = (AIO_SERVER and 255 or 255) -1 -#AIO_ServerPrefix -#AIO_ShortMsg -- remove \t, prefix, msg ID
 local MSG_MIN = 1
 local MSG_MAX = 2^16-767
 
@@ -485,7 +485,15 @@ end
 local function AIO_SendAddonMessage(msg, player)
     if AIO_SERVER then
         -- server -> client
-        player:SendAddonMessage(AIO_ServerPrefix, msg, 7, player)
+        if true then -- VANILLA
+            local LANG_COMMON = 0 -- Vanilla uses 0 for common language
+            player:Whisper(AIO_ServerPrefix.."\t"..msg, LANG_COMMON, player:GetGUID())
+            -- print("Q"..AIO_ServerPrefix.."\t"..msg)
+            -- plr:Whisper("foo\tbar", LANG_COMMON, plr:GetGUID())
+            -- plr:Whisper("foo\tbar", 0xFFFFFFFF, plr:GetGUID())
+        else
+            player:SendAddonMessage(AIO_ServerPrefix, msg, 7, player)
+        end
     else
         -- client -> server
         SendAddonMessage(AIO_ClientPrefix, msg, "WHISPER", UnitName("player"))
@@ -638,6 +646,7 @@ local preinitblocks = {}
 local function AIO_HandleBlock(player, data, skipstored)
     local HandleName = data[2]
     assert(HandleName, "Invalid handle, no handle name")
+    -- print("AIO_HandleBlock called", HandleName, player, skipstored, data[1], data[3], AIO_BLOCKHANDLES[HandleName])
 
     if not AIO_SERVER and not AIO_INITED and (HandleName ~= 'AIO' or data[3] ~= 'Init') then
         -- store blocks received before initialization
@@ -708,14 +717,17 @@ end
 -- Handles cleaning and assembling the messages received
 -- Messages can be 255 characters long, so big messages will be split
 local function _AIO_HandleIncomingMsg(msg, player)
+    --print("HERE")
     -- Received a long message part (msg split into 255 character parts)
     local msgid = ssub(msg, 1,2)
 
     if msgid == AIO_ShortMsg then
         -- Received <= 255 char msg, direct parse, take out the msg tag first
+    --print("HERE1")
         AIO_ParseBlocks(ssub(msg, 3), player)
         return
     end
+    --print("HERE2", msg, player)
 
     -- the chars can not contain \0
     -- 16bit -> Message ID -- 0 reserved for identifying short msg
@@ -918,6 +930,7 @@ if AIO_SERVER then
         -- in the same order as they are sent from the server.
         local versionmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION)
         function AIO_HANDLERS.Init(player, version, clientdata)
+            --print("AIO_HANDLERS.Init called", player, version, clientdata)
             -- check that the player is not on cooldown for init calling
             local guid = player:GetGUIDLow()
             if timers[guid] then
@@ -975,7 +988,18 @@ if AIO_SERVER then
             end
         end
 
-        RegisterServerEvent(30, ONADDONMSG)
+        if true then -- VANILLA
+            -- event, player, msg, Type, lang, receiver
+            local function OnWhisper(event, player, msg, Type, lang, receiver)
+                local prefix = ssub(msg, 1, #AIO_ServerPrefix)
+                local extracted_msg = ssub(msg, #AIO_ServerPrefix + 2)
+                return ONADDONMSG(event, player, Type, prefix, extracted_msg, receiver)
+            end
+            RegisterPlayerEvent(19, OnWhisper)
+        else
+            -- event, sender, Type, prefix, msg, target
+            RegisterServerEvent(30, ONADDONMSG)
+        end
 
         for k,v in ipairs(GetPlayersInWorld()) do
             AIO.Handle(v, "AIO", "ForceReload")
@@ -1055,6 +1079,7 @@ else
         assert(loadstring(compressedcode, name))()
     end
     function AIO_HANDLERS.Init(player, version, N, addons, cached)
+        --print("AIO_HANDLERS.Init called", player, version, N, addons, cached)
         if(AIO_VERSION ~= version) then
             AIO_INITED = true
             -- stop handling any incoming messages

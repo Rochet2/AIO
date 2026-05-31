@@ -72,23 +72,33 @@ local MyHandlers = AIO.AddHandlers("AIOExample", {})
 -- Note that this code is executed on addon side - you can use any addon API function etc.
 
 -- Create the base frame.
-FrameTest = CreateFrame("Frame", "FrameTest", UIParent, "UIPanelDialogTemplate")
+FrameTest = CreateFrame("Frame", "FrameTest", UIParent, nil) -- "UIPanelDialogTemplate" -- doesnt exist in vanilla wow
 local frame = FrameTest
 
 -- Some basic method usage..
 -- Read the wow addon widget API for what each function does:
 -- http://wowwiki.wikia.com/Widget_API
-frame:SetSize(200, 200)
+frame:SetWidth(200)
+frame:SetHeight(200)
+local FrameTexture = frame:CreateTexture("FrameTexture")
+FrameTexture:SetAllPoints(frame)
+FrameTexture:SetTexture(0, 0, 0, 0.5)
 frame:RegisterForDrag("LeftButton")
-frame:SetPoint("CENTER")
+frame:SetPoint("CENTER", nil)
 frame:SetToplevel(true)
 frame:SetClampedToScreen(true)
 -- Enable dragging of frame
 frame:SetMovable(true)
 frame:EnableMouse(true)
-frame:SetScript("OnDragStart", frame.StartMoving)
-frame:SetScript("OnHide", frame.StopMovingOrSizing)
-frame:SetScript("OnDragStop", frame.StopMovingOrSizing)
+frame:SetScript("OnDragStart", function() frame:StartMoving() end)
+frame:SetScript("OnHide", function() frame:StopMovingOrSizing() end)
+frame:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
+-- Add close button
+local closeButton = CreateFrame("Button", "CloseButton", frame, "UIPanelCloseButton")
+closeButton:SetWidth(30)
+closeButton:SetHeight(30)
+closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT")
+closeButton:SetScript("OnClick", function() frame:Hide() end)
 
 -- This enables saving of the position of the frame over reload of the UI or restarting game
 AIO.SavePosition(frame)
@@ -101,7 +111,8 @@ end
 
 -- Creating an input:
 local input = CreateFrame("EditBox", "InputTest", frame, "InputBoxTemplate")
-input:SetSize(100, 30)
+input:SetWidth(100)
+input:SetHeight(30)
 input:SetAutoFocus(false)
 input:SetPoint("CENTER", frame, "CENTER", 0, 50)
 input:SetScript("OnEnterPressed", input.ClearFocus)
@@ -109,21 +120,23 @@ input:SetScript("OnEscapePressed", input.ClearFocus)
 
 -- Creating a slider:
 local slider = CreateFrame("Slider", "SlideTest", frame, "OptionsSliderTemplate")
-slider:SetSize(100, 17)
+slider:SetWidth(100)
+slider:SetHeight(17)
 slider:SetPoint("CENTER", frame, "CENTER", 0, -50)
 slider:SetValueStep(0.5)
 slider:SetMinMaxValues(0, 100)
 slider:SetValue(50)
 slider.tooltipText = 'This is the Tooltip hint'
-_G[slider:GetName() .."Text"]:SetText(50)
-slider:SetScript("OnValueChanged", function(self) _G[slider:GetName() .."Text"]:SetText(self:GetValue()) end)
-_G[slider:GetName().."High"]:Hide()
-_G[slider:GetName().."Low"]:Hide()
+AIO.getglobal(slider:GetName() .."Text"):SetText(50)
+slider:SetScript("OnValueChanged", function() AIO.getglobal(slider:GetName() .."Text"):SetText(slider:GetValue()) end)
+AIO.getglobal(slider:GetName().."High"):Hide()
+AIO.getglobal(slider:GetName().."Low"):Hide()
 slider:Show()
 
 -- Creating a child, a button:
 local button = CreateFrame("Button", "ButtonTest", frame)
-button:SetSize(100, 30)
+button:SetWidth(100)
+button:SetHeight(30)
 button:SetPoint("CENTER", frame, "CENTER")
 button:EnableMouse(true)
 -- Small script to clear the focus from input on click
@@ -144,7 +157,7 @@ button:SetText("Test")
 -- You can find all events for different frame types here: http://wowwiki.wikia.com/Widget_handlers
 -- Here I send a message to the server that executes the print handler
 -- See the ExampleServer.lua file for the server side print handler.
-local function OnClickButton(btn)
-    AIO.Handle("AIOExample", "Print", btn:GetName(), input:GetText(), slider:GetValue())
+local function OnClickButton()
+    AIO.Handle("AIOExample", "Print", button:GetName(), input:GetText(), slider:GetValue())
 end
 button:SetScript("OnClick", OnClickButton)

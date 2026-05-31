@@ -16,4 +16,4 @@ AIO.AddSavedVar("PLAYER_STUFF")
 
 -- Then you store data to it or read data from it
 PLAYER_STUFF.var = PLAYER_STUFF.var+1
-print("This value should increment on reloads of UI:", PLAYER_STUFF.var)
+AIO.print("This value should increment on reloads of UI:", PLAYER_STUFF.var)
