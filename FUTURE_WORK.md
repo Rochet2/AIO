@@ -37,7 +37,7 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 
 ### Covered today (pure Lua, no WoW)
 
-- `queue`, Smallfolk, `aio_framing`, `aio_util`, `aio_reassembler`, lualzw, `aio_rpc` (see `tests/`).
+- `queue`, Smallfolk, `aio_framing`, `aio_util`, `aio_reassembler`, lualzw, `aio_rpc`, `aio_core` (pcall + `HandleBlock` rules; see `tests/`).
 
 ### Gaps (high value)
 
@@ -51,13 +51,13 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 
 ### Not worth chasing soon
 
-- Luacheck on full `AIO.lua` with all WoW globals declared.
+- Full `AIO.lua` load tests without a WoW mock harness (pipeline/UI still side-effect heavy).
 - Linting `Examples/` or vendored `Dep_*` trees.
 
 ## Luacheck on `AIO.lua`
 
-- `.luacheckrc` currently ignores most warning classes for the monolith.
-- Tighten **one category at a time** (e.g. unused locals, then line length) rather than enabling everything at once.
+- CI now runs Luacheck on `AIO.lua` with **syntax + unused locals (1.x, 2.x)**; globals (3.x) and style (4–6) still ignored until WoW/Eluna std is expanded.
+- Next: add remaining Eluna/WoW globals and enable 3.x; then line length (611).
 
 ## Documentation
 

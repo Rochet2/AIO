@@ -31,7 +31,7 @@ On Windows (without luarocks/luacheck on PATH), you can run the same Luacheck sc
 lua scripts/run_luacheck_local.lua
 ```
 
-CI (see `.github/workflows/ci.yml`) runs unit tests, Luacheck on shared modules and tests, and `diff` checks that these server/client pairs stay identical: `AIO.lua`, `aio_util.lua`, `aio_framing.lua`, `aio_reassembler.lua`, `aio_rpc.lua`, and `queue.lua`.
+CI (see `.github/workflows/ci.yml`) runs unit tests, Luacheck on shared modules, `AIO.lua`, and tests, and `diff` checks that these server/client pairs stay identical: `AIO.lua`, `aio_core.lua`, `aio_util.lua`, `aio_framing.lua`, `aio_reassembler.lua`, `aio_rpc.lua`, and `queue.lua`.
 
 # About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.

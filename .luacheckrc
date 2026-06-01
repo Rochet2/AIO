@@ -53,6 +53,9 @@ files["AIO_Client/aio_reassembler.lua"] = {}
 files["AIO_Server/aio_rpc.lua"] = {}
 files["AIO_Client/aio_rpc.lua"] = {}
 
+files["AIO_Server/aio_core.lua"] = {}
+files["AIO_Client/aio_core.lua"] = {}
+
 files["AIO_Server/aio_server_pipeline.lua"] = {
     ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
@@ -62,12 +65,42 @@ files["AIO_Client/aio_client_ui.lua"] = {
 }
 
 files["AIO_Server/AIO.lua"] = {
-    -- Monolith with many Eluna/WoW globals; focus on syntax and obvious issues only.
-    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+    -- WoW/Eluna globals (3.x) and style (4–6) deferred; syntax + unused locals enforced.
+    ignore = {"3.", "4.", "5.", "6."},
+    globals = {
+        "AIO_sv",
+        "AIO_sv_char",
+        "AIO_sv_Addons",
+        "AIO_FRAMEPOSITIONS",
+        "AIO_FRAMEPOSITIONSCHAR",
+        "AIO_RESET",
+        "PrintInfo",
+        "message",
+        "WorldFrame",
+        "GetBuildInfo",
+        "RegisterAddonMessagePrefix",
+        "SLASH_AIO1",
+        "SlashCmdList",
+    },
 }
 
 files["AIO_Client/AIO.lua"] = {
-    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+    ignore = {"3.", "4.", "5.", "6."},
+    globals = {
+        "AIO_sv",
+        "AIO_sv_char",
+        "AIO_sv_Addons",
+        "AIO_FRAMEPOSITIONS",
+        "AIO_FRAMEPOSITIONSCHAR",
+        "AIO_RESET",
+        "PrintInfo",
+        "message",
+        "WorldFrame",
+        "GetBuildInfo",
+        "RegisterAddonMessagePrefix",
+        "SLASH_AIO1",
+        "SlashCmdList",
+    },
 }
 
 files["tests/run.lua"] = {

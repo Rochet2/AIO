@@ -55,6 +55,12 @@ local files = {
     "AIO_Client/aio_reassembler.lua",
     "AIO_Server/aio_rpc.lua",
     "AIO_Client/aio_rpc.lua",
+    "AIO_Server/aio_core.lua",
+    "AIO_Client/aio_core.lua",
+    "AIO_Server/aio_server_pipeline.lua",
+    "AIO_Client/aio_client_ui.lua",
+    "AIO_Server/AIO.lua",
+    "AIO_Client/AIO.lua",
     "tests/run.lua",
     "tests/test_queue.lua",
     "tests/test_smallfolk.lua",
@@ -65,6 +71,7 @@ local files = {
     "tests/test_reassembler.lua",
     "tests/test_lualzw.lua",
     "tests/test_aio_rpc.lua",
+    "tests/test_aio_core.lua",
 }
 
 local paths = {}

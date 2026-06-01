@@ -46,6 +46,7 @@ dofile(script_path .. "test_path_legacy.lua")
 dofile(script_path .. "test_reassembler.lua")
 dofile(script_path .. "test_lualzw.lua")
 dofile(script_path .. "test_aio_rpc.lua")
+dofile(script_path .. "test_aio_core.lua")
 
 print(string.format("\n%d passed, %d failed", passed, failed))
 os.exit(failed > 0 and 1 or 0)

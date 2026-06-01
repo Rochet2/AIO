@@ -15,6 +15,7 @@ aio_util.lua
 aio_framing.lua
 aio_reassembler.lua
 aio_rpc.lua
+aio_core.lua
 aio_client_ui.lua
 
 #core

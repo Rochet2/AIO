@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Shared modules: `aio_framing`, `aio_reassembler`, `aio_rpc`, `aio_util` (server and client copies kept in sync; CI enforces `diff`).
 - Asymmetric modules: `aio_server_pipeline` (server), `aio_client_ui` (client); `AIO.lua` delegates to them while staying identical on both sides.
+- Shared `aio_core` module (pcall wrapper, block dispatch); unit tests; CI Luacheck on `AIO.lua` (syntax + unused locals).
 - Pure Lua test suite under `tests/` and GitHub Actions CI (unit tests, Luacheck, module sync checks).
 - `SECURITY.md`, `DEPENDENCIES.md`, `CHANGELOG.md`, and `FUTURE_WORK.md`.
 - `scripts/run_luacheck_local.lua` for running Luacheck on Windows without a full luarocks install.

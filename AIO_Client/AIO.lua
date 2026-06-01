@@ -234,8 +234,8 @@ local tostring = tostring
 local pairs = pairs
 local ipairs = ipairs
 local ssub = string.sub
-local match = string.match
 local schar = string.char
+local aio_core = require("aio_core")
 local aio_framing = require("aio_framing")
 local aio_reassembler_mod = require("aio_reassembler")
 local aio_rpc_mod = require("aio_rpc")
@@ -343,41 +343,29 @@ function AIO_debug(...)
     end
 end
 
--- returns the amount of varargs from passed varargs
-local function AIO_extractN(...)
-    return select("#", ...), ...
-end
-
--- Calls function f with parameters ... with pcall
--- Shows errors with print or AIO_debug
-local function AIO_pcall(f, ...)
-    assert(type(f) == 'function')
-    if not AIO_ENABLE_PCALL then
-        return f(...)
-    end
-    local data
-    if AIO_SERVER and AIO_ENABLE_TRACEBACK and debug.traceback then
-        data = {AIO_extractN(xpcall(f, debug.traceback, ...))}
-    else
-        data = {AIO_extractN(pcall(f, ...))}
-    end
-    if not data[2] then
+local AIO_pcall = aio_core.make_pcall({
+    unpack = unpack,
+    pcall = pcall,
+    xpcall = xpcall,
+    enable_pcall = AIO_ENABLE_PCALL,
+    server = AIO_SERVER,
+    enable_traceback = AIO_ENABLE_TRACEBACK,
+    debug_traceback = debug.traceback,
+    on_error = function(err)
         if AIO_SERVER then
-            AIO_debug(data[3])
+            AIO_debug(err)
         else
             if AIO_ERROR_LOG then
-                AIO.Handle("AIO", "Error", data[3])
+                AIO.Handle("AIO", "Error", err)
             end
             if AIO_ENABLE_TRACEBACK then
-                _ERRORMESSAGE(data[3])
+                _ERRORMESSAGE(err)
             else
-                print(data[3])
+                print(err)
             end
         end
-        return
-    end
-    return unpack(data, 3, data[1]+1)
-end
+    end,
+})
 
 local framing_codec = aio_framing.new(AIO_MsgLen)
 local reassembler = aio_reassembler_mod.new({
@@ -486,45 +474,14 @@ function AIO.Msg()
     return rpc.Msg()
 end
 
--- Calls the handler for block, see AIO.RegisterEvent
--- for adding handlers for blocks
-local preinitblocks = {}
-local function AIO_HandleBlock(player, data, skipstored)
-    local HandleName = data[2]
-    assert(HandleName, "Invalid handle, no handle name")
-
-    if AIO_client_state and AIO_client_state.AIO_VERSION_MISMATCH and not (HandleName == 'AIO' and data[3] == 'Init') then
-        return
-    end
-
-    if AIO_client_state and not AIO_client_state.AIO_INITED and (HandleName ~= 'AIO' or data[3] ~= 'Init') then
-        -- store blocks received before initialization
-        preinitblocks[#preinitblocks+1] = data
-        AIO_debug("Received block before Init:", HandleName, data[1], data[3])
-        return
-    end
-
-    local handledata = AIO_BLOCKHANDLES[HandleName]
-    if not handledata then
-        error("Unknown AIO block handle: '"..tostring(HandleName).."'")
-    end
-
-    -- found the block handler and arguments match the format.
-    -- call the block handler
-    if AIO_SERVER and data[1] > 15 then
-        error("Received AIO block with over 15 arguments. Try using tables instead")
-        return
-    end
-    handledata(player, unpack(data, 3, data[1]+2))
-
-    if not skipstored and AIO_client_state and AIO_client_state.AIO_INITED and HandleName == 'AIO' and data[3] == 'Init' then
-        -- handle stored blocks after initialization, if they are not init messages
-        for i = 1, #preinitblocks do
-            AIO_HandleBlock(player, preinitblocks[i], true)
-            preinitblocks[i] = nil
-        end
-    end
-end
+local AIO_HandleBlock = aio_core.make_handle_block({
+    unpack = unpack,
+    client_state = AIO_client_state,
+    block_handlers = AIO_BLOCKHANDLES,
+    server = AIO_SERVER,
+    max_block_args = 15,
+    debug = AIO_debug,
+})
 
 local function AIO_ParseBlocks(msg, player)
     AIO_pcall(function()
