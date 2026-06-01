@@ -80,3 +80,11 @@ files["AIO_Client/AIO.lua"] = {
 files["tests/run.lua"] = {
     globals = {"dofile", "os"},
 }
+
+files["tests/test_aio_core.lua"] = {
+    ignore = {"143"},
+}
+
+files["tests/test_aio_rpc.lua"] = {
+    ignore = {"143"},
+}
