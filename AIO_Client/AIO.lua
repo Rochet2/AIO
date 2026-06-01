@@ -447,7 +447,7 @@ if AIO_SERVER and AIO_TIMEOUT_INSTRUCTIONCOUNT > 0 then
             timeout_parse_msg = msg
             debug.sethook(AIO_Timeout, "", AIO_TIMEOUT_INSTRUCTIONCOUNT)
         end,
-        ["end"] = function()
+        on_end = function()
             debug.sethook()
         end,
     }

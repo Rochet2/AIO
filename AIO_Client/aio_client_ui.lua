@@ -1,3 +1,4 @@
+-- luacheck: ignore
 --[[
     Client-only: addon cache, SavedVariables, init/reload UI, incoming addon messages.
 ]]

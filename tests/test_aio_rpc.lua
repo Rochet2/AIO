@@ -121,7 +121,7 @@ test("rpc timeout_hook begin and end", function()
             begin = function(msg)
                 log.begin = #msg
             end,
-            ["end"] = function()
+            on_end = function()
                 log.ended = true
             end,
         },

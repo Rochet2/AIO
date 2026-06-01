@@ -120,7 +120,7 @@ function M.new(opts)
         end)
 
         if hooked then
-            hooked["end"]()
+            hooked.on_end()
         end
 
         if not ok then
