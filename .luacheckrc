@@ -53,12 +53,8 @@ files["AIO_Client/aio_reassembler.lua"] = {}
 files["AIO_Server/aio_rpc.lua"] = {}
 files["AIO_Client/aio_rpc.lua"] = {}
 
-files["AIO_Server/aio_core.lua"] = {
-    ignore = {"2.", "3.", "4.", "5.", "6."},
-}
-files["AIO_Client/aio_core.lua"] = {
-    ignore = {"2.", "3.", "4.", "5.", "6."},
-}
+files["AIO_Server/aio_core.lua"] = {}
+files["AIO_Client/aio_core.lua"] = {}
 
 files["AIO_Server/aio_server_pipeline.lua"] = {
     ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
@@ -69,22 +65,13 @@ files["AIO_Client/aio_client_ui.lua"] = {
 }
 
 files["AIO_Server/AIO.lua"] = {
-    -- Syntax + unused locals; 3.x-6.x deferred (WoW globals, style).
-    ignore = {"113", "3.", "4.", "5.", "6."},
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
 
 files["AIO_Client/AIO.lua"] = {
-    ignore = {"113", "3.", "4.", "5.", "6."},
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
 
 files["tests/run.lua"] = {
     globals = {"dofile", "os"},
-}
-
-files["tests/test_aio_core.lua"] = {
-    ignore = {"113"},
-}
-
-files["tests/test_aio_rpc.lua"] = {
-    ignore = {"113"},
 }
