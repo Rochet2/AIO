@@ -21,23 +21,6 @@ jobs:
       - name: Run tests (Lua 5.1, full suite)
         run: lua5.1 tests/run.lua
 
-  test-server-lua:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        lua: ["5.2", "5.3", "5.4"]
-    steps:
-      - uses: actions/checkout@v5
-
-      - name: Install Lua ${{ matrix.lua }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y "lua${{ matrix.lua }}"
-
-      - name: Run tests (server AIO integration on Lua ${{ matrix.lua }})
-        run: lua${{ matrix.lua }} tests/run.lua
-
       - name: Run Luacheck on core helpers and tests
         run: |
           luacheck --config .luacheckrc \
@@ -68,3 +51,20 @@ jobs:
           diff -q AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua
           diff -q AIO_Server/queue.lua AIO_Client/queue.lua
           diff -q AIO_Server/aio_core.lua AIO_Client/aio_core.lua
+
+  test-server-lua:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ["5.2", "5.3", "5.4"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Lua ${{ matrix.lua }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "lua${{ matrix.lua }}"
+
+      - name: Run tests (unit + server AIO integration; client suite skipped)
+        run: lua${{ matrix.lua }} tests/run.lua
