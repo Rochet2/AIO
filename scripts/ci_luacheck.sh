@@ -1,6 +1,6 @@
 #!/bin/sh
 # Same file list as .github/workflows/ci.yml (for local use on Unix).
-set -e
+failed=0
 for f in \
   AIO_Server/queue.lua AIO_Client/queue.lua \
   AIO_Server/aio_util.lua AIO_Client/aio_util.lua \
@@ -15,5 +15,8 @@ for f in \
   tests/test_aio_rpc.lua tests/test_aio_core.lua
 do
   echo "==> luacheck $f"
-  luacheck --config .luacheckrc --codes "$f"
+  if ! luacheck --config .luacheckrc --codes "$f"; then
+    failed=1
+  fi
 done
+test "$failed" -eq 0
