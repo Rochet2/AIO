@@ -228,11 +228,6 @@ local AIO_ERROR_LOG = false -- default false
 
 ----------------------------------
 
-local assert = assert
-local type = type
-local tostring = tostring
-local pairs = pairs
-local ipairs = ipairs
 local ssub = string.sub
 local schar = string.char
 local aio_core = require("aio_core")
@@ -240,12 +235,9 @@ local aio_framing = require("aio_framing")
 local aio_reassembler_mod = require("aio_reassembler")
 local aio_rpc_mod = require("aio_rpc")
 local tconcat = table.concat
-local select = select
-local pcall = pcall
-local xpcall = xpcall
 -- Some lua compatibility between 5.1 and 5.2
-local loadstring = loadstring or load -- loadstring name varies with lua 5.1 and 5.2
-local unpack = unpack or table.unpack -- unpack place varies with lua 5.1 and 5.2
+local loadstring = loadstring or load -- luacheck: ignore 113
+local unpack = _G.unpack or table.unpack -- luacheck: ignore 143
 -- server client compatibility (milliseconds on both sides)
 local AIO_GetTime = os and function() return os.time() * 1000 end or function() return GetTime() * 1000 end
 local AIO_GetTimeDiff = function(now, earlier) return now - earlier end
@@ -304,12 +296,12 @@ local AIO_BLOCKHANDLES = AIO_MAIN_LUA_STATE and {} or nil
 local AIO_ADDONSORDER = AIO_MAIN_LUA_STATE and {} or nil
 
 -- Dependencies
-local LibWindow
-local LuaSrcDiet
 local NewQueue = NewQueue or require("queue")
 local Smallfolk = Smallfolk or require("smallfolk")
 local lualzw = lualzw or require("lualzw")
 local aio_util = require("aio_util")
+local LibWindow -- luacheck: ignore 231
+local LuaSrcDiet -- luacheck: ignore 231
 if AIO_SERVER then
     if AIO_MAIN_LUA_STATE then
         LuaSrcDiet = require("LuaSrcDiet")
@@ -333,8 +325,8 @@ function AIO.GetVersion()
     return AIO_VERSION
 end
 
--- Client reset (assigned by aio_client_ui.install)
-local AIO_RESET
+-- Client reset (set in client branch below)
+local AIO_RESET -- luacheck: ignore 231
 
 -- Used to print debug messages if AIO_ENABLE_DEBUG_MSGS is true
 function AIO_debug(...)
