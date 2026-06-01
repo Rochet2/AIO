@@ -65,7 +65,8 @@ function M.make_handle_block(opts)
         end
         handledata(player, unpack_fn(data, 3, data[1] + 2))
 
-        if not skipstored and client_state and client_state.AIO_INITED and handle_name == "AIO" and data[3] == "Init" then
+        if not skipstored and client_state and client_state.AIO_INITED
+                and handle_name == "AIO" and data[3] == "Init" then
             for i = 1, #preinitblocks do
                 handle_block(player, preinitblocks[i], true)
                 preinitblocks[i] = nil
