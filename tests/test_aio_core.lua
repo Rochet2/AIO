@@ -1,4 +1,7 @@
-local unpack = assert(_G.unpack)
+local unpack = _G.unpack
+if not unpack then
+    unpack = table.unpack -- luacheck: ignore 113
+end
 local aio_core = require("aio_core")
 
 test("aio_core extract_n", function()

@@ -1,4 +1,7 @@
-local unpack = assert(_G.unpack)
+local unpack = _G.unpack
+if not unpack then
+    unpack = table.unpack -- luacheck: ignore 113
+end
 local smallfolk = require("smallfolk")
 local aio_rpc = require("aio_rpc")
 
