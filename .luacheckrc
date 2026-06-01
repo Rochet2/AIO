@@ -78,6 +78,7 @@ files["tests/run.lua"] = {
 
 files["tests/test_aio_core.lua"] = {
     globals = {"xpcall"},
+    ignore = {"561", "581"},
 }
 
 files["tests/test_aio_rpc.lua"] = {
