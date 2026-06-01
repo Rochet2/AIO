@@ -74,12 +74,12 @@ files["AIO_Client/AIO.lua"] = {
 
 files["tests/run.lua"] = {
     globals = {"dofile", "os"},
-    -- unpack shim is for Lua 5.2+; under std lua51 the branch is never taken.
-    ignore = {"561", "581"},
 }
 
 files["tests/test_aio_core.lua"] = {
     globals = {"xpcall"},
 }
 
-files["tests/test_aio_rpc.lua"] = {}
+files["tests/test_aio_rpc.lua"] = {
+    ignore = {"561", "581"},
+}

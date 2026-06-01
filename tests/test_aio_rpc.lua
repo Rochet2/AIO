@@ -2,6 +2,9 @@ local unpack_fn = _G.unpack
 if not unpack_fn then
     unpack_fn = table.unpack -- luacheck: ignore 113
 end
+if not _G.unpack then
+    _G.unpack = unpack_fn
+end
 local smallfolk = require("smallfolk")
 local aio_rpc = require("aio_rpc")
 
