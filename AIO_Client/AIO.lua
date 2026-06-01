@@ -380,7 +380,7 @@ if AIO_SERVER and AIO_MAIN_LUA_STATE then
 end
 -- Erase data on logout
 if AIO_SERVER and AIO_MAIN_LUA_STATE then
-    local function Erase(event, player)
+    local function Erase(_, player)
         reassembler:remove_peer(player:GetGUIDLow())
     end
     RegisterPlayerEvent(4, Erase)
@@ -618,7 +618,7 @@ if AIO_MAIN_LUA_STATE then
     end
 
     if AIO_SERVER then
-        local function OnCommand(event, player, msg)
+        local function OnCommand(_, player, msg)
             msg = msg:lower()
             if ssub(msg, 1, 3) ~= 'aio' then
                 return
@@ -640,16 +640,16 @@ if AIO_MAIN_LUA_STATE then
     else
         SLASH_AIO1 = "/aio"
         function SlashCmdList.AIO(msg)
-            local msg = msg:lower()
-            if msg and msg ~= "" then
+            local cmd = msg:lower()
+            if cmd and cmd ~= "" then
                 for k,v in pairs(cmds) do
-                    if k:find(msg, 1, true) == 1 then
+                    if k:find(cmd, 1, true) == 1 then
                         v()
                         return
                     end
                 end
             end
-            print("Unknown command /aio "..tostring(msg))
+            print("Unknown command /aio "..tostring(cmd))
             cmds.help()
         end
     end
