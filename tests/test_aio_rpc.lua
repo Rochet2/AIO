@@ -1,4 +1,4 @@
-local unpack = _G.unpack or table.unpack
+local unpack = assert(_G.unpack)
 local smallfolk = require("smallfolk")
 local aio_rpc = require("aio_rpc")
 

@@ -237,7 +237,7 @@ local aio_rpc_mod = require("aio_rpc")
 local tconcat = table.concat
 -- Some lua compatibility between 5.1 and 5.2
 local loadstring = loadstring or load -- luacheck: ignore 113
-local unpack = _G.unpack or table.unpack -- luacheck: ignore 143
+local unpack = assert(_G.unpack)
 -- server client compatibility (milliseconds on both sides)
 local AIO_GetTime = os and function() return os.time() * 1000 end or function() return GetTime() * 1000 end
 local AIO_GetTimeDiff = function(now, earlier) return now - earlier end

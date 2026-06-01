@@ -1,4 +1,4 @@
-local unpack = _G.unpack or table.unpack
+local unpack = assert(_G.unpack)
 local aio_core = require("aio_core")
 
 test("aio_core extract_n", function()
