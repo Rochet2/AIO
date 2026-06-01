@@ -2,11 +2,6 @@
     Block-oriented RPC over a serialized message blob (Smallfolk by default).
 ]]
 
-local unpack = _G.unpack
-if not unpack then
-    unpack = table.unpack -- luacheck: ignore 113
-end
-
 local M = {}
 
 function M.new(opts)
@@ -93,7 +88,7 @@ function M.new(opts)
         if server and data[1] > max_block_args then
             error("Received AIO block with over " .. max_block_args .. " arguments. Try using tables instead")
         end
-        handledata(player, unpack(data, 3, data[1] + 2))
+        handledata(player, (_G.unpack or table.unpack)(data, 3, data[1] + 2)) -- luacheck: ignore 113
     end
 
     local function parse_blocks(msg, player, on_block)
