@@ -73,7 +73,7 @@ function M.make_handle_block(opts)
         end
     end
 
-    return handle_block, preinitblocks
+    return handle_block
 end
 
 return M

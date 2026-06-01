@@ -53,8 +53,12 @@ files["AIO_Client/aio_reassembler.lua"] = {}
 files["AIO_Server/aio_rpc.lua"] = {}
 files["AIO_Client/aio_rpc.lua"] = {}
 
-files["AIO_Server/aio_core.lua"] = {}
-files["AIO_Client/aio_core.lua"] = {}
+files["AIO_Server/aio_core.lua"] = {
+    ignore = {"2.", "3.", "4.", "5.", "6."},
+}
+files["AIO_Client/aio_core.lua"] = {
+    ignore = {"2.", "3.", "4.", "5.", "6."},
+}
 
 files["AIO_Server/aio_server_pipeline.lua"] = {
     ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
