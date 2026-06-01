@@ -272,7 +272,7 @@ AIO =
     unpack = unpack,
 }
 
-local AIO = AIO
+local AIO = AIO -- luacheck: ignore 431
 -- Client side table containing frames that need to have their position saved
 local AIO_SAVEDFRAMES = {}
 -- Client side tables that contain keys to _G table for saved variables
