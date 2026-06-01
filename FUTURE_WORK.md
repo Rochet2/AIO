@@ -38,12 +38,13 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 ### Covered today (pure Lua, no WoW)
 
 - `queue`, Smallfolk, `aio_framing`, `aio_util`, `aio_reassembler`, lualzw, `aio_rpc`, `aio_core` (pcall + `HandleBlock` rules; see `tests/`).
+- **`AIO.lua` stub harness** (`tests/wow_stub.lua`, `tests/aio_integration_util.lua`): load server/client `AIO.lua`, `AIO_Send` / `AIO.Handle`, server pipeline `AddAddonCode` + Init wire, `/aio help` (server `PrintInfo`, client via `debug.sethook` on `print`). Run with **Lua 5.1** (`lua5.1 tests/run.lua`); client install does not replace `_G.print` (Lua 5.4 can hang). `aio_client_ui` is preloaded with a minimal stub until real UI load is debugged.
 
 ### Gaps (high value)
 
 | Area | Notes |
 |------|--------|
-| **`AIO.lua` integration** | Init/version mismatch, cache hit/miss, `AddAddon` pipeline—needs heavy mocking of WoW/Eluna globals or in-game tests. |
+| **`AIO.lua` integration (deeper)** | Cache hit/miss, version mismatch, full client UI (`aio_client_ui` + `ADDON_LOADED`), `loadstring` addon delivery—in-game or richer stub. |
 | **Server-only paths** | LuaSrcDiet obfuscation, crc32, compression flags—could unit-test with fixtures if extracted. |
 | **Client-only paths** | SavedVariables, `/aio` commands, `ForceReload` / `ForceReset`—mostly UI; manual or headless WoW. |
 | **Fuzz / property tests** | Random round-trips through framing + reassembler + Smallfolk at scale. |
@@ -51,7 +52,6 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 
 ### Not worth chasing soon
 
-- Full `AIO.lua` load tests without a WoW mock harness (pipeline/UI still side-effect heavy).
 - Linting `Examples/` or vendored `Dep_*` trees.
 
 ## Luacheck on `AIO.lua`

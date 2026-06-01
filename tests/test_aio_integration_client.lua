@@ -1,0 +1,30 @@
+-- luacheck: ignore
+local u = dofile((debug.getinfo(1, "S").source:match("@?(.*[/\\])") or "./") .. "aio_integration_util.lua")
+local wow_stub = u.wow_stub
+
+test("integration client loads AIO.lua", function()
+    wow_stub.reset_log()
+    local AIO = u.load_aio_from("AIO_Client/", wow_stub.install_client_deps, wow_stub.install_client)
+    assert_true(not AIO.IsServer())
+    assert_true(AIO.IsMainState())
+    assert_eq(AIO.GetVersion(), 1.76)
+end)
+
+test("integration client slash aio help", function()
+    wow_stub.reset_log()
+    local AIO = u.load_aio_from("AIO_Client/", wow_stub.install_client_deps, wow_stub.install_client)
+    local print_calls = u.count_builtin_print_calls(function()
+        SlashCmdList.AIO("help")
+    end)
+    assert_true(print_calls > 0)
+    assert_true(not AIO.IsServer())
+end)
+
+test("integration client AIO_Handle sends addon message", function()
+    wow_stub.reset_log()
+    local AIO = u.load_aio_from("AIO_Client/", wow_stub.install_client_deps, wow_stub.install_client)
+    AIO.Handle("Ping", "hello")
+    local msg = u.last_addon_msg("client_to_server")
+    assert_true(msg ~= nil)
+    assert_true(#msg.msg > 0)
+end)

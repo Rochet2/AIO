@@ -25,6 +25,8 @@ Pure Lua modules can be tested outside WoW:
 lua5.1 tests/run.lua
 ```
 
+Unit tests cover shared modules (`aio_rpc`, `aio_core`, framing, queue, etc.). Integration tests load server/client `AIO.lua` via `tests/wow_stub.lua` (minimal Eluna/WoW globals). Use Lua 5.1 for CI parity; Lua 5.4 may warn and must not replace `_G.print` in the stub.
+
 On Windows (without luarocks/luacheck on PATH), you can run the same Luacheck scope as CI:
 
 ```sh

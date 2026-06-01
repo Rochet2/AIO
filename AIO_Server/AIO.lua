@@ -247,6 +247,13 @@ local AIO_GetTimeDiff = function(now, earlier) return now - earlier end
 
 -- boolean value to define whether we are on server or client side
 local AIO_SERVER = type(GetLuaEngine) == "function"
+
+local function AIO_IsPlayerObject(player)
+    if _G.AIO_TEST_ALLOW_TABLE_PLAYERS then
+        return type(player) == "userdata" or type(player) == "table"
+    end
+    return type(player) == "userdata"
+end
 -- boolean value to define if we are on main lua state (eluna multistate support)
 local AIO_MAIN_LUA_STATE = not AIO_SERVER or not GetStateMapId or GetStateMapId() == -1
 -- Client must have same version (basically same AIO file)
@@ -406,7 +413,7 @@ end
 -- Splits too long messages into smaller pieces
 local function AIO_Send(msg, player, ...)
     assert(type(msg) == "string", "#1 string expected")
-    assert(not AIO_SERVER or type(player) == 'userdata', "#2 player expected")
+    assert(not AIO_SERVER or AIO_IsPlayerObject(player), "#2 player expected")
 
     AIO_debug("Sending message length:", #msg)
     if AIO_ENABLE_MSGPRINT then
@@ -584,7 +591,7 @@ end
 
 if AIO_SERVER then
     function AIO.Handle(player, name, handlername, ...)
-        assert(type(player) == "userdata", "#1 player expected")
+        assert(AIO_IsPlayerObject(player), "#1 player expected")
         assert(name ~= nil, "#2 expected not nil")
         return AIO.Msg():Add(name, handlername, ...):Send(player)
     end

@@ -73,6 +73,22 @@ files["AIO_Client/AIO.lua"] = {
 }
 
 files["tests/run.lua"] = {
-    globals = {"dofile", "os"},
+    globals = {"dofile", "os", "io"},
+}
+
+files["tests/wow_stub.lua"] = {
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+}
+
+files["tests/aio_integration_util.lua"] = {
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+}
+
+files["tests/test_aio_integration_server.lua"] = {
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+}
+
+files["tests/test_aio_integration_client.lua"] = {
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
 }
 

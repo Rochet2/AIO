@@ -1,5 +1,9 @@
 #!/usr/bin/env lua
 
+if _VERSION ~= "Lua 5.1" then
+    io.stderr:write("warning: tests target Lua 5.1 (CI); running under " .. _VERSION .. "\n")
+end
+
 local script_path = debug.getinfo(1, "S").source:match("@?(.*[/\\])") or "./"
 local root = script_path .. "../"
 
@@ -47,6 +51,8 @@ dofile(script_path .. "test_reassembler.lua")
 dofile(script_path .. "test_lualzw.lua")
 dofile(script_path .. "test_aio_rpc.lua")
 dofile(script_path .. "test_aio_core.lua")
+dofile(script_path .. "test_aio_integration_server.lua")
+dofile(script_path .. "test_aio_integration_client.lua")
 
 print(string.format("\n%d passed, %d failed", passed, failed))
 os.exit(failed > 0 and 1 or 0)
