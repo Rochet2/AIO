@@ -46,7 +46,7 @@ test("aio_core pcall returns nil on failure", function()
         error("boom")
     end)
     assert_eq(result, nil)
-    assert_true(err_msg and err_msg:find("boom", 1, true))
+    assert_true(err_msg and string.find(err_msg, "boom", 1, true))
 end)
 
 test("aio_core pcall disabled calls through", function()

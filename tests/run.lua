@@ -11,6 +11,11 @@ add_path(root .. "AIO_Server/Dep_Smallfolk/")
 add_path(root .. "AIO_Server/lualzw-zeros/")
 add_path(root .. "AIO_Server/")
 
+-- Lua 5.2+ removed global unpack; tests may run on 5.4 while CI uses 5.1.
+if not _G.unpack then
+    _G.unpack = table.unpack -- luacheck: ignore 113
+end
+
 local passed, failed = 0, 0
 
 function test(name, fn)

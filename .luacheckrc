@@ -75,3 +75,9 @@ files["AIO_Client/AIO.lua"] = {
 files["tests/run.lua"] = {
     globals = {"dofile", "os"},
 }
+
+files["tests/test_aio_core.lua"] = {
+    globals = {"xpcall"},
+}
+
+files["tests/test_aio_rpc.lua"] = {}
