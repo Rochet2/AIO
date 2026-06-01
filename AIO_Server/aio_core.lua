@@ -10,7 +10,7 @@ end
 
 function M.make_pcall(opts)
     local extract_n = M.extract_n
-    local unpack = opts.unpack
+    local unpack_fn = opts.unpack
     local pcall_fn = opts.pcall
     local xpcall_fn = opts.xpcall
 
@@ -29,14 +29,14 @@ function M.make_pcall(opts)
             opts.on_error(data[3])
             return
         end
-        return unpack(data, 3, data[1] + 1)
+        return unpack_fn(data, 3, data[1] + 1)
     end
 end
 
 -- Returns handle_block(player, data, skipstored) and a table holding queued pre-init blocks.
 function M.make_handle_block(opts)
     local preinitblocks = {}
-    local unpack = opts.unpack
+    local unpack_fn = opts.unpack
     local client_state = opts.client_state
     local block_handles = opts.block_handlers
     local debug_fn = opts.debug
@@ -63,7 +63,7 @@ function M.make_handle_block(opts)
         if opts.server and data[1] > opts.max_block_args then
             error("Received AIO block with over " .. opts.max_block_args .. " arguments. Try using tables instead")
         end
-        handledata(player, unpack(data, 3, data[1] + 2))
+        handledata(player, unpack_fn(data, 3, data[1] + 2))
 
         if not skipstored and client_state and client_state.AIO_INITED and handle_name == "AIO" and data[3] == "Init" then
             for i = 1, #preinitblocks do

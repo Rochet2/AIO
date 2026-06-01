@@ -1,6 +1,6 @@
-local unpack = _G.unpack
-if not unpack then
-    unpack = table.unpack -- luacheck: ignore 113
+local unpack_fn = _G.unpack
+if not unpack_fn then
+    unpack_fn = table.unpack -- luacheck: ignore 113
 end
 local aio_core = require("aio_core")
 
@@ -13,7 +13,7 @@ end)
 
 test("aio_core pcall returns values on success", function()
     local fn = aio_core.make_pcall({
-        unpack = unpack,
+        unpack = unpack_fn,
         pcall = pcall,
         xpcall = xpcall,
         enable_pcall = true,
@@ -32,7 +32,7 @@ end)
 test("aio_core pcall returns nil on failure", function()
     local err_msg
     local fn = aio_core.make_pcall({
-        unpack = unpack,
+        unpack = unpack_fn,
         pcall = pcall,
         xpcall = xpcall,
         enable_pcall = true,
@@ -51,7 +51,7 @@ end)
 
 test("aio_core pcall disabled calls through", function()
     local fn = aio_core.make_pcall({
-        unpack = unpack,
+        unpack = unpack_fn,
         pcall = pcall,
         xpcall = xpcall,
         enable_pcall = false,
@@ -70,7 +70,7 @@ test("aio_core handle_block queues pre-init messages", function()
     local seen = {}
     local client_state = { AIO_INITED = false, AIO_VERSION_MISMATCH = false }
     local handle_block = aio_core.make_handle_block({
-        unpack = unpack,
+        unpack = unpack_fn,
         client_state = client_state,
         block_handlers = {
             Ping = function(_, msg)
@@ -96,7 +96,7 @@ test("aio_core handle_block ignores when version mismatch", function()
     local seen = {}
     local client_state = { AIO_INITED = true, AIO_VERSION_MISMATCH = true }
     local handle_block = aio_core.make_handle_block({
-        unpack = unpack,
+        unpack = unpack_fn,
         client_state = client_state,
         block_handlers = {
             Ping = function(_, msg)
@@ -114,7 +114,7 @@ end)
 
 test("aio_core handle_block server max args", function()
     local handle_block = aio_core.make_handle_block({
-        unpack = unpack,
+        unpack = unpack_fn,
         client_state = nil,
         block_handlers = { H = function() end },
         server = true,

@@ -1,6 +1,6 @@
-local unpack = _G.unpack
-if not unpack then
-    unpack = table.unpack -- luacheck: ignore 113
+local unpack_fn = _G.unpack
+if not unpack_fn then
+    unpack_fn = table.unpack -- luacheck: ignore 113
 end
 local smallfolk = require("smallfolk")
 local aio_rpc = require("aio_rpc")
@@ -11,7 +11,7 @@ local function aio_pcall(f, ...)
     if not results[1] then
         return nil
     end
-    return unpack(results, 2, #results)
+    return unpack_fn(results, 2, #results)
 end
 
 local function make_rpc(opts)
