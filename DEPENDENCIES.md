@@ -11,6 +11,8 @@ AIO vendors its dependencies inside `AIO_Server/` and `AIO_Client/`. You do not 
 | aio_reassembler | `AIO_Server/aio_reassembler.lua` | `AIO_Client/aio_reassembler.lua` | Long-message reassembly, TTL, byte caps |
 | aio_rpc | `AIO_Server/aio_rpc.lua` | `AIO_Client/aio_rpc.lua` | Block RPC over Smallfolk |
 | aio_util | `AIO_Server/aio_util.lua` | `AIO_Client/aio_util.lua` | Shared helpers (basename, cache accounting) |
+| aio_server_pipeline | `AIO_Server/aio_server_pipeline.lua` | — | Server-only: addon build, init push, addon channel |
+| aio_client_ui | — | `AIO_Client/aio_client_ui.lua` | Client-only: cache, SavedVariables, init/reload UI |
 | Queue | `AIO_Server/queue.lua` | `AIO_Client/queue.lua` | Based on PIL 11.4, with AIO modifications |
 | Smallfolk | `AIO_Server/Dep_Smallfolk/` | `AIO_Client/Dep_Smallfolk/` | Wire serialization |
 | lualzw | `AIO_Server/lualzw-zeros/` | `AIO_Client/lualzw-zeros/` | [Rochet2/lualzw](https://github.com/Rochet2/lualzw) **v1.1.0** (2026-05-31), configured with `skip = { [0] = true }` for the former `zeros` branch wire format |
@@ -45,6 +47,7 @@ aio_util.lua                     → require("aio_util")
 aio_framing.lua                  → require("aio_framing")
 aio_reassembler.lua              → require("aio_reassembler")
 aio_rpc.lua                      → require("aio_rpc")
+aio_client_ui.lua                → require("aio_client_ui") from AIO.lua (client)
 AIO.lua                          → require("AIO") in other addons; loads deps above
 ```
 

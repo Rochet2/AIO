@@ -53,6 +53,14 @@ files["AIO_Client/aio_reassembler.lua"] = {}
 files["AIO_Server/aio_rpc.lua"] = {}
 files["AIO_Client/aio_rpc.lua"] = {}
 
+files["AIO_Server/aio_server_pipeline.lua"] = {
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+}
+
+files["AIO_Client/aio_client_ui.lua"] = {
+    ignore = {"1.", "2.", "3.", "4.", "5.", "6."},
+}
+
 files["AIO_Server/AIO.lua"] = {
     -- Monolith with many Eluna/WoW globals; focus on syntax and obvious issues only.
     ignore = {"1.", "2.", "3.", "4.", "5.", "6."},

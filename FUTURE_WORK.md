@@ -15,8 +15,8 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 
 ### Further split of `AIO.lua`
 
-- Transport, addon build/push, Init handshake, and client UI/cache are still in one large file (~900+ lines, server and client kept identical where possible).
-- Next extractions could be **asymmetric** (server-only addon pipeline vs client-only cache/UI) since those halves are not required to `diff` equal.
+- **Done (1.76):** server addon pipeline (`aio_server_pipeline.lua`) and client cache/UI (`aio_client_ui.lua`) extracted; `AIO.lua` stays identical on both sides and delegates with `require`.
+- Remaining in `AIO.lua`: shared config, messaging, RPC wiring, `AIO_HandleBlock`, slash commands, handler registration.
 
 ### Eluna / C++ CAIO
 

@@ -287,12 +287,12 @@ local AIO_SAVEDFRAMES = {}
 -- you should add your variables here with AIO.AddSavedVar(key) or AIO.AddSavedVarChar(key)
 local AIO_SAVEDVARS = {}
 local AIO_SAVEDVARSCHAR = {}
--- Client side flag for noting if the client has been inited or not
-local AIO_INITED = false
--- Client side: wipe SavedVariables on next ADDON_LOADED after AIO_RESET / ForceReset
-local AIO_PENDING_RESET = false
--- Client side: version mismatch with server; Init retries continue until resolved
-local AIO_VERSION_MISMATCH = false
+-- Client-only mutable state (shared with aio_client_ui)
+local AIO_client_state = not AIO_SERVER and {
+    AIO_INITED = false,
+    AIO_PENDING_RESET = false,
+    AIO_VERSION_MISMATCH = false,
+} or nil
 -- Server and Client side functions to execute on AIO messages
 local AIO_HANDLERS = AIO_MAIN_LUA_STATE and {} or nil
 -- Server side functions to execute when an init msg is received
@@ -333,26 +333,8 @@ function AIO.GetVersion()
     return AIO_VERSION
 end
 
--- Resets AIO saved variables on client side
+-- Client reset (assigned by aio_client_ui.install)
 local AIO_RESET
-if not AIO_SERVER then
-    function AIO_RESET()
-        AIO_PENDING_RESET = true
-        AIO_VERSION_MISMATCH = false
-        if AIO_SAVEDVARS then
-            for key in pairs(AIO_SAVEDVARS) do
-                _G[key] = nil
-            end
-        end
-        if AIO_SAVEDVARSCHAR then
-            for key in pairs(AIO_SAVEDVARSCHAR) do
-                _G[key] = nil
-            end
-        end
-        AIO_sv_Addons = nil
-        AIO_SAVEDFRAMES = {}
-    end
-end
 
 -- Used to print debug messages if AIO_ENABLE_DEBUG_MSGS is true
 function AIO_debug(...)
@@ -397,17 +379,6 @@ local function AIO_pcall(f, ...)
     return unpack(data, 3, data[1]+1)
 end
 
--- Reads a file at given absolute or relative to server root path
--- and returns the full file contents as a string
-local function AIO_ReadFile(path)
-    AIO_debug("Reading a file")
-    assert(type(path) == 'string', "#1 string expected")
-    local f = assert(io.open(path, "rb"))
-    local str = f:read("*all")
-    f:close()
-    return str
-end
-
 local framing_codec = aio_framing.new(AIO_MsgLen)
 local reassembler = aio_reassembler_mod.new({
     framing = framing_codec,
@@ -424,22 +395,8 @@ local reassembler = aio_reassembler_mod.new({
 local function ProcessRemoveQue()
     reassembler:sweep_expired()
 end
-if AIO_SERVER then
-    if AIO_MAIN_LUA_STATE then
-        CreateLuaEvent(ProcessRemoveQue, AIO_MSG_CACHE_DELAY, 0)
-    end
-else
-    local frame = CreateFrame("Frame")
-    local timer = AIO_MSG_CACHE_DELAY
-    local function ONUPDATE(self, diff)
-        if timer > diff then
-            timer = timer - diff
-        else
-            ProcessRemoveQue()
-            timer = AIO_MSG_CACHE_DELAY
-        end
-    end
-    frame:SetScript("OnUpdate", ONUPDATE)
+if AIO_SERVER and AIO_MAIN_LUA_STATE then
+    CreateLuaEvent(ProcessRemoveQue, AIO_MSG_CACHE_DELAY, 0)
 end
 -- Erase data on logout
 if AIO_SERVER and AIO_MAIN_LUA_STATE then
@@ -536,11 +493,11 @@ local function AIO_HandleBlock(player, data, skipstored)
     local HandleName = data[2]
     assert(HandleName, "Invalid handle, no handle name")
 
-    if not AIO_SERVER and AIO_VERSION_MISMATCH and not (HandleName == 'AIO' and data[3] == 'Init') then
+    if AIO_client_state and AIO_client_state.AIO_VERSION_MISMATCH and not (HandleName == 'AIO' and data[3] == 'Init') then
         return
     end
 
-    if not AIO_SERVER and not AIO_INITED and (HandleName ~= 'AIO' or data[3] ~= 'Init') then
+    if AIO_client_state and not AIO_client_state.AIO_INITED and (HandleName ~= 'AIO' or data[3] ~= 'Init') then
         -- store blocks received before initialization
         preinitblocks[#preinitblocks+1] = data
         AIO_debug("Received block before Init:", HandleName, data[1], data[3])
@@ -560,7 +517,7 @@ local function AIO_HandleBlock(player, data, skipstored)
     end
     handledata(player, unpack(data, 3, data[1]+2))
 
-    if not skipstored and not AIO_SERVER and AIO_INITED and HandleName == 'AIO' and data[3] == 'Init' then
+    if not skipstored and AIO_client_state and AIO_client_state.AIO_INITED and HandleName == 'AIO' and data[3] == 'Init' then
         -- handle stored blocks after initialization, if they are not init messages
         for i = 1, #preinitblocks do
             AIO_HandleBlock(player, preinitblocks[i], true)
@@ -631,389 +588,66 @@ end
 -- omitted the file the function is executed in will be used as path
 -- and the path's or given path's file name will be used.
 -- Returns true if called on server side
+local aio_side_ctx = {
+    AIO = AIO,
+    AIO_VERSION = AIO_VERSION,
+    AIO_client_state = AIO_client_state,
+    AIO_SAVEDFRAMES = AIO_SAVEDFRAMES,
+    AIO_SAVEDVARS = AIO_SAVEDVARS,
+    AIO_SAVEDVARSCHAR = AIO_SAVEDVARSCHAR,
+    AIO_HANDLERS = AIO_HANDLERS,
+    AIO_ADDONSORDER = AIO_ADDONSORDER,
+    AIO_INITHOOKS = AIO_INITHOOKS,
+    AIO_debug = AIO_debug,
+    AIO_pcall = AIO_pcall,
+    AIO_HandleIncomingMsg = AIO_HandleIncomingMsg,
+    AIO_Msg = AIO.Msg,
+    AIO_CODE_OBFUSCATE = AIO_CODE_OBFUSCATE,
+    AIO_MSG_COMPRESS = AIO_MSG_COMPRESS,
+    AIO_UI_INIT_DELAY = AIO_UI_INIT_DELAY,
+    AIO_FORCE_RELOAD_ON_STARTUP = AIO_FORCE_RELOAD_ON_STARTUP,
+    AIO_MSG_CACHE_DELAY = AIO_MSG_CACHE_DELAY,
+    AIO_Compressed = AIO_Compressed,
+    AIO_Uncompressed = AIO_Uncompressed,
+    AIO_ClientPrefix = AIO_ClientPrefix,
+    AIO_ServerPrefix = AIO_ServerPrefix,
+    AIO_Prefix = AIO_Prefix,
+    lualzw = lualzw,
+    aio_util = aio_util,
+    LuaSrcDiet = LuaSrcDiet,
+    LibWindow = LibWindow,
+    loadstring = loadstring,
+    ssub = ssub,
+    reassembler_sweep = ProcessRemoveQue,
+}
+
 function AIO.AddAddon(path, name)
     if AIO_SERVER then
         if AIO_MAIN_LUA_STATE then
-            path = path or debug.getinfo(2, 'S').source:sub(2)
-            name = name or aio_util.basename(path)
-            local code = AIO_ReadFile(path)
-            AIO.AddAddonCode(name, code)
-            AIO_debug("Added addon path&name:", path, name)
+            require("aio_server_pipeline").add_addon_file(aio_side_ctx, path, name)
         end
         return true
     end
 end
 
 if AIO_SERVER then
-    -- A shorthand for sending a message for a handler.
     function AIO.Handle(player, name, handlername, ...)
-        assert(type(player) == 'userdata', "#1 player expected")
+        assert(type(player) == "userdata", "#1 player expected")
         assert(name ~= nil, "#2 expected not nil")
         return AIO.Msg():Add(name, handlername, ...):Send(player)
     end
 
-    
     if AIO_MAIN_LUA_STATE then
-        -- Adds the addon code to the sent addons on login.
-        -- The addon code is trimmed according to settings at top of this file.
-        -- The addon is cached on client side and will be updated if needed.
-        -- name is an unique ID for the addon, usually you can use the file name or addon name there
-        -- Do note that short names are better since they are sent back and forth to identify files
-        local crc32 = require("crc32lua").crc32
-        function AIO.AddAddonCode(name, code)
-            assert(type(name) == 'string', "#1 string expected")
-            assert(type(code) == 'string', "#2 string expected")
-            if AIO_CODE_OBFUSCATE then
-                code = LuaSrcDiet(code, 3)
-            end
-            if AIO_MSG_COMPRESS then
-                code = AIO_Compressed..assert(lualzw.compress(code))
-            else
-                code = AIO_Uncompressed..code
-            end
-            AIO_ADDONSORDER[#AIO_ADDONSORDER+1] = {name=name, crc=crc32(code), code=code}
-        end
-
-        -- Adds a new function that is called when an init message
-        -- is about to be sent by server. The function is called before sending and
-        -- the message is passed to it along with the player if available:
-        -- func(msg[, player])
-        -- you can modify the passed message and or return a new one
-        function AIO.AddOnInit(func)
-            assert(type(func) == 'function', "#1 function expected")
-            table.insert(AIO_INITHOOKS, func)
-        end
-
-        -- This restricts player's ability to request the initial UI to some set time delay
-        local timers = {}
-        local function RemoveInitTimer(eventid, playerguid)
-            if type(playerguid) == "number" then
-                timers[playerguid] = nil
-            end
-        end
-        -- This handles sending initial UI to player.
-        -- The Client sends a request to the server for the addons along with it's cached addon data.
-        -- Then the server checks what files it has to send back and what it has to remove from the client's cache.
-        -- Then after server sends the required data to client, the client will one by one execute the addons
-        -- in the same order as they are sent from the server.
-        local versionmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION)
-        function AIO_HANDLERS.Init(player, version, clientdata)
-            -- check that the player is not on cooldown for init calling
-            local guid = player:GetGUIDLow()
-            if timers[guid] then
-                return
-            end
-
-            -- make a new cooldown for init calling
-            timers[guid] = CreateLuaEvent(function(e) RemoveInitTimer(e, guid) end, AIO_UI_INIT_DELAY, 1) -- the timer here (AIO_UI_INIT_DELAY) is the min time in ms between inits the player can do
-
-            -- Check for bad version and send version back for error directly
-            if version ~= AIO_VERSION then
-                versionmsg:Send(player)
-                return
-            end
-
-            local istable = type(clientdata) == 'table'
-
-            local addons = {}
-            local cached = {}
-            for i = 1, #AIO_ADDONSORDER do
-                local data = AIO_ADDONSORDER[i]
-                local clientcrc = istable and clientdata[data.name] or nil
-                if clientcrc and clientcrc == data.crc then
-                    -- valid - send name only
-                    cached[i] = data.name
-                else
-                    -- not cached or outdated - send new
-                    addons[i] = data
-                end
-            end
-
-            local initmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION, #AIO_ADDONSORDER, addons, cached)
-
-            for k,v in ipairs(AIO_INITHOOKS) do
-                initmsg = v(initmsg, player) or initmsg
-            end
-
-            initmsg:Send(player)
-        end
-
-        -- Handler that catches client errors
-        -- can be used to log client errors to server
-        function AIO_HANDLERS.Error(player, errmsg)
-            if type(errmsg) ~= 'string' then
-                return
-            end
-            PrintInfo(errmsg)
-        end
-
-        -- An addon message event handler for the lua engine
-        -- If the message data is correct, move the message forward to the AIO message handler.
-        local function ONADDONMSG(event, sender, Type, prefix, msg, target)
-            if prefix == AIO_ClientPrefix and tostring(sender) == tostring(target) and #msg < 510 then
-                AIO_HandleIncomingMsg(msg, sender)
-            end
-        end
-
-        RegisterServerEvent(30, ONADDONMSG)
-
-        if AIO_FORCE_RELOAD_ON_STARTUP then
-            for k,v in ipairs(GetPlayersInWorld()) do
-                AIO.Handle(v, "AIO", "ForceReload")
-            end
-        end
+        require("aio_server_pipeline").install_main_state(aio_side_ctx)
     end
-
 else
-
-    -- A shorthand for sending a message for a handler.
     function AIO.Handle(name, handlername, ...)
         assert(name ~= nil, "#1 expected not nil")
         return AIO.Msg():Add(name, handlername, ...):Send()
     end
 
-    -- Key is a key for a variable in the global table _G
-    -- The variable is stored when the player logs out and will be restored
-    -- when he logs back in before the addon codes are run
-    -- these variables are account bound
-    function AIO.AddSavedVar(key)
-        assert(key ~= nil, "#1 table key expected")
-        AIO_SAVEDVARS[key] = true
-    end
-
-    -- Key is a key for a variable in the global table _G
-    -- The variable is stored when the player logs out and will be restored
-    -- when he logs back in before the addon codes are run
-    -- these variables are character bound
-    function AIO.AddSavedVarChar(key)
-        assert(key ~= nil, "#1 table key expected")
-        AIO_SAVEDVARSCHAR[key] = true
-    end
-
-    AIO_FRAMEPOSITIONS = AIO_FRAMEPOSITIONS or {}
-    AIO.AddSavedVar("AIO_FRAMEPOSITIONS")
-    AIO_FRAMEPOSITIONSCHAR = AIO_FRAMEPOSITIONSCHAR or {}
-    AIO.AddSavedVarChar("AIO_FRAMEPOSITIONSCHAR")
-    -- Makes the frame save it's position over relog
-    -- If char is true, the position saving is character bound, otherwise account bound
-    function AIO.SavePosition(frame, char)
-        assert(frame:GetName(), "Called AIO.SavePosition on a nameless frame")
-        local store = char and AIO_FRAMEPOSITIONSCHAR or AIO_FRAMEPOSITIONS
-        if not store[frame:GetName()] then
-            store[frame:GetName()] = {}
-        end
-        LibWindow.RegisterConfig(frame, store[frame:GetName()])
-        LibWindow.RestorePosition(frame)
-        LibWindow.SavePosition(frame)
-        table.insert(AIO_SAVEDFRAMES, frame)
-    end
-
-    -- A client side event handler
-    -- Passes the incoming message to AIO message handler if it is valid
-    local function ONADDONMSG(self, event, prefix, msg, Type, sender)
-        if prefix == AIO_ServerPrefix then
-            if event == "CHAT_MSG_ADDON" and sender == UnitName("player") then
-                -- Normal AIO message handling from addon messages
-                AIO_HandleIncomingMsg(msg, sender)
-            end
-        end
-    end
-    local MsgReceiver = CreateFrame("Frame")
-    MsgReceiver:RegisterEvent("CHAT_MSG_ADDON")
-    MsgReceiver:SetScript("OnEvent", ONADDONMSG)
-
-    -- A block handler for Init name, checks the version number and errors out if needed
-    -- On wrong version prevents handling any more messages
-    -- Stores new and changed addons to cache and runs the addons from cache
-    -- Also removes removed and outdated addons
-    local function RunAddon(name)
-        -- Check if code is compressed and uncompress if needed
-        local code = AIO_sv_Addons[name] and AIO_sv_Addons[name].code
-        assert(code, "Addon doesnt exist")
-        local compression, compressedcode = ssub(code, 1, 1), ssub(code, 2)
-        if compression == AIO_Compressed then
-            compressedcode = assert(lualzw.decompress(compressedcode))
-        end
-        assert(loadstring(compressedcode, name))()
-    end
-    function AIO_HANDLERS.Init(player, version, N, addons, cached)
-        if(AIO_VERSION ~= version) then
-            if not AIO_VERSION_MISMATCH then
-                AIO_VERSION_MISMATCH = true
-                print("You have AIO version "..AIO_VERSION.." and the server uses "..(version or "nil")..". Get the same version")
-            end
-            return
-        end
-        AIO_VERSION_MISMATCH = false
-
-        assert(type(N) == 'number')
-        assert(type(addons) == 'table')
-        assert(type(cached) == 'table')
-
-        local validAddons = {}
-        for i = 1, N do
-            local name
-            if addons[i] then
-                name = addons[i].name
-                AIO_sv_Addons[name] = addons[i]
-                validAddons[name] = true
-            elseif cached[i] then
-                name = cached[i]
-                validAddons[name] = true
-            else
-                error("Unexpected behavior, try /aio reset")
-            end
-
-            AIO_pcall(RunAddon, name)
-        end
-
-        local invalidAddons = {}
-        for name, data in pairs(AIO_sv_Addons) do
-            if not validAddons[name] then
-                invalidAddons[#invalidAddons+1] = name
-            end
-        end
-
-        for i = 1, #invalidAddons do
-            AIO_sv_Addons[invalidAddons[i]] = nil
-        end
-
-        AIO_INITED = true
-        print("Initialized AIO version "..AIO_VERSION..". Type '/aio help' for commands")
-    end
-
-    -- Forces reload of UI for user on next action
-    function AIO_HANDLERS.ForceReload(player)
-        local frame = CreateFrame("BUTTON")
-        frame:SetToplevel(true)
-        frame:SetFrameStrata("TOOLTIP")
-        frame:SetFrameLevel(100)
-        frame:SetAllPoints(WorldFrame)
-        -- frame.texture = frame:CreateTexture()
-        -- frame.texture:SetAllPoints(frame)
-        -- frame.texture:SetTexture(0.1, 0.1, 0.1, 0.5)
-        frame:SetScript("OnClick", ReloadUI)
-        print("AIO: Force reloading UI")
-        message("AIO: Force reloading UI")
-    end
-
-    -- Forces reset of UI for user on next action
-    function AIO_HANDLERS.ForceReset(player)
-        AIO_RESET()
-        AIO_HANDLERS.ForceReload(player)
-    end
-
-    local frame = CreateFrame("FRAME") -- Need a frame to respond to events
-    frame:RegisterEvent("ADDON_LOADED") -- Fired when saved variables are loaded
-    frame:RegisterEvent("PLAYER_LOGOUT") -- Fired when about to log out
-
-    -- message to request initialization of UI
-    function frame:OnEvent(event, addon)
-        if event == "ADDON_LOADED" and addon == "AIO_Client" then
-            -- Register addon channel on cata+
-            local _,_,_, tocversion = GetBuildInfo()
-            if tocversion and tocversion >= 40100 and RegisterAddonMessagePrefix then
-                RegisterAddonMessagePrefix("C"..AIO_Prefix)
-            end
-
-            -- Our saved variables are ready at this point. If there is no save, they will be nil
-            -- Must be before any other addon action like sending init request
-            if type(AIO_sv) ~= 'table' then
-                AIO_sv = {} -- This is the first time this addon is loaded; initialize the var
-            end
-            if type(AIO_sv_char) ~= 'table' then
-                AIO_sv_char = {} -- This is the first time this addon is loaded; initialize the var
-            end
-            if type(AIO_sv_Addons) ~= 'table' then
-                AIO_sv_Addons = {} -- This is the first time this addon is loaded; initialize the var
-            end
-
-            if AIO_PENDING_RESET then
-                AIO_sv = {}
-                AIO_sv_char = {}
-                AIO_sv_Addons = {}
-                AIO_PENDING_RESET = false
-                if AIO_SAVEDVARS then
-                    for key in pairs(AIO_SAVEDVARS) do
-                        _G[key] = nil
-                    end
-                end
-                if AIO_SAVEDVARSCHAR then
-                    for key in pairs(AIO_SAVEDVARSCHAR) do
-                        _G[key] = nil
-                    end
-                end
-            else
-                -- Restore addon saved variables to global namespace
-                -- Must be before sending init request
-                for k,v in pairs(AIO_sv) do
-                    if _G[k] then
-                        AIO_debug("Overwriting global var _G["..k.."] with a saved var")
-                    end
-                    _G[k] = v
-                end
-                for k,v in pairs(AIO_sv_char) do
-                    if _G[k] then
-                        AIO_debug("Overwriting global var _G["..k.."] with a saved character var")
-                    end
-                    _G[k] = v
-                end
-            end
-
-            -- Request initialization of UI if not done yet
-            -- Retries with increasing delay until inited (OnUpdate elapsed is in seconds)
-            -- initmsg consists of the version and all known crc codes for cached addons.
-            local rem = {}
-            local addons = {}
-            for name, data in pairs(AIO_sv_Addons) do
-                if type(name) ~= 'string' or type(data) ~= 'table' or type(data.crc) ~= 'number' or type(data.code) ~= 'string' then
-                    table.insert(rem, name)
-                else
-                    addons[name] = data.crc
-                end
-            end
-            for _,name in ipairs(rem) do
-                AIO_sv_Addons[name] = nil -- remove invalid addons
-            end
-
-            local initmsg = AIO.Msg():Add("AIO", "Init", AIO_VERSION, addons)
-
-            local initInterval = 1
-            local initElapsed = 0
-            local function ONUPDATE(self, diff)
-                if AIO_INITED then
-                    self:SetScript("OnUpdate", nil)
-                    initmsg = nil
-                    initInterval = nil
-                    initElapsed = nil
-                    return
-                end
-                initElapsed = initElapsed + diff
-                if initElapsed >= initInterval then
-                    initmsg:Send()
-                    initElapsed = 0
-                    initInterval = initInterval * 1.5
-                end
-            end
-            frame:SetScript("OnUpdate", ONUPDATE)
-            -- initmsg:Send()
-        elseif event == "PLAYER_LOGOUT" then
-            -- On logout we must store all global namespace to saved vars
-            AIO_sv = {} -- discard vars that no longer exist
-            for key,_ in pairs(AIO_SAVEDVARS or {}) do
-                AIO_sv[key] = _G[key]
-            end
-            AIO_sv_char = {} -- discard vars that no longer exist
-            for key,_ in pairs(AIO_SAVEDVARSCHAR or {}) do
-                AIO_sv_char[key] = _G[key]
-            end
-
-            for k,v in ipairs(AIO_SAVEDFRAMES or {}) do
-                LibWindow.SavePosition(v)
-            end
-        end
-    end
-    frame:SetScript("OnEvent", frame.OnEvent)
+    require("aio_client_ui").install(aio_side_ctx)
+    AIO_RESET = aio_side_ctx.AIO_RESET
 end
 
 if AIO_MAIN_LUA_STATE then
