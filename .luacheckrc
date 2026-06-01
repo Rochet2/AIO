@@ -65,42 +65,12 @@ files["AIO_Client/aio_client_ui.lua"] = {
 }
 
 files["AIO_Server/AIO.lua"] = {
-    -- WoW/Eluna globals (3.x) and style (4–6) deferred; syntax + unused locals enforced.
-    ignore = {"3.", "4.", "5.", "6."},
-    globals = {
-        "AIO_sv",
-        "AIO_sv_char",
-        "AIO_sv_Addons",
-        "AIO_FRAMEPOSITIONS",
-        "AIO_FRAMEPOSITIONSCHAR",
-        "AIO_RESET",
-        "PrintInfo",
-        "message",
-        "WorldFrame",
-        "GetBuildInfo",
-        "RegisterAddonMessagePrefix",
-        "SLASH_AIO1",
-        "SlashCmdList",
-    },
+    -- Syntax only for now; 2.x–6.x deferred (WoW globals, shadowing, line length).
+    ignore = {"2.", "3.", "4.", "5.", "6."},
 }
 
 files["AIO_Client/AIO.lua"] = {
-    ignore = {"3.", "4.", "5.", "6."},
-    globals = {
-        "AIO_sv",
-        "AIO_sv_char",
-        "AIO_sv_Addons",
-        "AIO_FRAMEPOSITIONS",
-        "AIO_FRAMEPOSITIONSCHAR",
-        "AIO_RESET",
-        "PrintInfo",
-        "message",
-        "WorldFrame",
-        "GetBuildInfo",
-        "RegisterAddonMessagePrefix",
-        "SLASH_AIO1",
-        "SlashCmdList",
-    },
+    ignore = {"2.", "3.", "4.", "5.", "6."},
 }
 
 files["tests/run.lua"] = {

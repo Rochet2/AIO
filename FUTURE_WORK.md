@@ -56,8 +56,8 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 
 ## Luacheck on `AIO.lua`
 
-- CI now runs Luacheck on `AIO.lua` with **syntax + unused locals (1.x, 2.x)**; globals (3.x) and style (4–6) still ignored until WoW/Eluna std is expanded.
-- Next: add remaining Eluna/WoW globals and enable 3.x; then line length (611).
+- CI runs Luacheck on `AIO.lua` (**syntax only** for now; categories 2–6 ignored). Tighten 2.x (unused locals) incrementally once warnings are cleared locally with Lua 5.1.
+- Next: add Eluna/WoW globals and enable 3.x; then unused locals (2.x) and line length (611).
 
 ## Documentation
 
