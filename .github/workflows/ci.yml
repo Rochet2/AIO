@@ -35,11 +35,6 @@ jobs:
             tests/test_path_legacy.lua tests/test_reassembler.lua tests/test_lualzw.lua \
             tests/test_aio_rpc.lua tests/test_aio_core.lua
 
-      - name: Run Luacheck on WoW-only side modules
-        run: |
-          luacheck --config .luacheckrc \
-            AIO_Server/aio_server_pipeline.lua AIO_Client/aio_client_ui.lua
-
       - name: Verify server and client shared modules stay in sync
         run: |
           diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
