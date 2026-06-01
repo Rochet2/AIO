@@ -57,7 +57,7 @@ Server-side Eluna resolves `require("smallfolk")`, `require("lualzw")`, `require
 3. Run `lua tests/run.lua` and CI locally if possible.
 4. Update this file with the new upstream URL or version if known.
 
-No version pins are recorded in-repo today; note the commit or release you vendor when upgrading.
+Note the commit or release you vendor when upgrading. AIO release versions are listed in [CHANGELOG.md](CHANGELOG.md) (`AIO_VERSION` in `AIO.lua`).
 
 ## Development / CI tools (not shipped to players)
 

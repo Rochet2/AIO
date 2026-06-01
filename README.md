@@ -10,10 +10,13 @@ Backlink: https://github.com/Rochet2/AIO
 - Make sure you have [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna)
 - Copy the `AIO_Client` to your `WoW_installation_folder/Interface/AddOns/`
 - Copy the `AIO_Server` to your `server_root/lua_scripts/`
-- See configuration settings on AIO.lua file. You can tweak both the server and client file respectively
-- When developing an addon it is recommended to have AIO_ENABLE_PCALL off and sometimes you may need AIO_ENABLE_DEBUG_MSGS on to see some information about what is going on.
+- See configuration settings in `AIO.lua` on both server and client. Important defaults in 1.76:
+  - `AIO_FORCE_RELOAD_ON_STARTUP = true` — on server startup, all online players are asked to reload UI (set `false` to disable).
+  - `AIO_VERSION` must match between server and client (currently **1.76**; see [CHANGELOG.md](CHANGELOG.md)).
+- When developing an addon it is recommended to have `AIO_ENABLE_PCALL` off and sometimes you may need `AIO_ENABLE_DEBUG_MSGS` on to see some information about what is going on.
 - See [SECURITY.md](SECURITY.md) for the threat model and recommended production settings.
 - See [DEPENDENCIES.md](DEPENDENCIES.md) for vendored libraries and client load order.
+- See [FUTURE_WORK.md](FUTURE_WORK.md) for planned or deferred improvements.
 
 # Testing
 Pure Lua modules can be tested outside WoW:
@@ -22,7 +25,13 @@ Pure Lua modules can be tested outside WoW:
 lua5.1 tests/run.lua
 ```
 
-CI (see `.github/workflows/ci.yml`) also runs Luacheck and verifies `AIO_Server/AIO.lua` and `AIO_Client/AIO.lua` stay identical.
+On Windows (without luarocks/luacheck on PATH), you can run the same Luacheck scope as CI:
+
+```sh
+lua scripts/run_luacheck_local.lua
+```
+
+CI (see `.github/workflows/ci.yml`) runs unit tests, Luacheck on shared modules and tests, and `diff` checks that these server/client pairs stay identical: `AIO.lua`, `aio_util.lua`, `aio_framing.lua`, `aio_reassembler.lua`, `aio_rpc.lua`, and `queue.lua`.
 
 # About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.

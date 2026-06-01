@@ -255,7 +255,7 @@ local AIO_SERVER = type(GetLuaEngine) == "function"
 -- boolean value to define if we are on main lua state (eluna multistate support)
 local AIO_MAIN_LUA_STATE = not AIO_SERVER or not GetStateMapId or GetStateMapId() == -1
 -- Client must have same version (basically same AIO file)
-local AIO_VERSION = 1.75
+local AIO_VERSION = 1.76
 -- ID characters for client-server messaging
 local AIO_ShortMsg          = aio_framing.SHORT_TAG
 local AIO_Compressed        = 'C'

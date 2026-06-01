@@ -64,6 +64,7 @@ local files = {
     "tests/test_path_legacy.lua",
     "tests/test_reassembler.lua",
     "tests/test_lualzw.lua",
+    "tests/test_aio_rpc.lua",
 }
 
 local paths = {}
