@@ -72,6 +72,7 @@ local files = {
     "tests/test_lualzw.lua",
     "tests/test_aio_rpc.lua",
     "tests/test_aio_core.lua",
+    "tests/lua_compat.lua",
     "tests/wow_stub.lua",
     "tests/aio_integration_util.lua",
     "tests/test_aio_integration_server.lua",

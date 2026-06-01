@@ -18,8 +18,25 @@ jobs:
           sudo luarocks --lua-version=5.1 install luacheck
           luacheck --version
 
-      - name: Run unit tests
+      - name: Run tests (Lua 5.1, full suite)
         run: lua5.1 tests/run.lua
+
+  test-server-lua:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ["5.2", "5.3", "5.4"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Lua ${{ matrix.lua }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "lua${{ matrix.lua }}"
+
+      - name: Run tests (server AIO integration on Lua ${{ matrix.lua }})
+        run: lua${{ matrix.lua }} tests/run.lua
 
       - name: Run Luacheck on core helpers and tests
         run: |
@@ -34,7 +51,7 @@ jobs:
             tests/test_framing.lua tests/test_util.lua tests/test_stored.lua \
             tests/test_path_legacy.lua tests/test_reassembler.lua tests/test_lualzw.lua \
             tests/test_aio_rpc.lua tests/test_aio_core.lua \
-            tests/wow_stub.lua tests/aio_integration_util.lua \
+            tests/lua_compat.lua tests/wow_stub.lua tests/aio_integration_util.lua \
             tests/test_aio_integration_server.lua tests/test_aio_integration_client.lua
 
       - name: Run Luacheck on WoW-only side modules

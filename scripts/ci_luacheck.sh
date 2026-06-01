@@ -12,7 +12,7 @@ luacheck --config .luacheckrc \
   tests/test_framing.lua tests/test_util.lua tests/test_stored.lua \
   tests/test_path_legacy.lua tests/test_reassembler.lua tests/test_lualzw.lua \
   tests/test_aio_rpc.lua tests/test_aio_core.lua \
-  tests/wow_stub.lua tests/aio_integration_util.lua \
+  tests/lua_compat.lua tests/wow_stub.lua tests/aio_integration_util.lua \
   tests/test_aio_integration_server.lua tests/test_aio_integration_client.lua
 luacheck --config .luacheckrc \
   AIO_Server/aio_server_pipeline.lua AIO_Client/aio_client_ui.lua

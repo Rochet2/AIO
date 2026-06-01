@@ -38,7 +38,7 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 ### Covered today (pure Lua, no WoW)
 
 - `queue`, Smallfolk, `aio_framing`, `aio_util`, `aio_reassembler`, lualzw, `aio_rpc`, `aio_core` (pcall + `HandleBlock` rules; see `tests/`).
-- **`AIO.lua` stub harness** (`tests/wow_stub.lua`, `tests/aio_integration_util.lua`): load server/client `AIO.lua`, `AIO_Send` / `AIO.Handle`, server pipeline `AddAddonCode` + Init wire, `/aio help` (server `PrintInfo`, client via `debug.sethook` on `print`). Run with **Lua 5.1** (`lua5.1 tests/run.lua`); client install does not replace `_G.print` (Lua 5.4 can hang). `aio_client_ui` is preloaded with a minimal stub until real UI load is debugged.
+- **`AIO.lua` stub harness** (`tests/wow_stub.lua`, `tests/aio_integration_util.lua`): server integration on **Lua 5.1–5.4**, client integration on **5.1 only** (`tests/lua_compat.lua`). Client harness does not replace `_G.print` on newer Lua. `aio_client_ui` is preloaded with a minimal stub until real UI load is debugged.
 
 ### Gaps (high value)
 
