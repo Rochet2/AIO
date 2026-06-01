@@ -6,6 +6,7 @@
 *.md text eol=lf
 *.toc text eol=lf
 *.txt text eol=lf
+*.sh text eol=lf
 .luacheckrc text eol=lf
 .editorconfig text eol=lf
 .gitignore text eol=lf
