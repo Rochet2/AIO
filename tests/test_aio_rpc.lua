@@ -1,3 +1,4 @@
+-- luacheck: ignore
 local unpack_fn = _G.unpack
 if not unpack_fn then
     unpack_fn = table.unpack -- luacheck: ignore 113
