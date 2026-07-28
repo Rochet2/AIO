@@ -1,7 +1,7 @@
 # AIO
 AIO is a pure lua server-client communication system for Eluna and WoW.  
 AIO is designed for sending lua addons and data to player from server and data from player to server.  
-Made for [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna). Tested on 3.3.5a and should work on other patches. Tested with Lua 5.1 and 5.2.  
+Made for [Eluna Lua Engine](https://github.com/ElunaLuaEngine/Eluna). Tested on 3.3.5a and should work on other patches. Tested with Lua 5.1–5.4 (CI); Eluna production path is Lua 5.1.  
 [Third party C++ support is made by SaiFi0102](https://github.com/SaiFi0102/TrinityCore/blob/CAIO-3.3.5/CAIO_README.md). It allows you to use AIO without requiring Eluna.
 
 Backlink: https://github.com/Rochet2/AIO
@@ -42,7 +42,13 @@ On Windows (without luarocks/luacheck on PATH), you can run the same Luacheck sc
 lua scripts/run_luacheck_local.lua
 ```
 
-CI (see `.github/workflows/ci.yml`) runs unit tests, Luacheck on shared modules, `AIO.lua`, and tests, and `diff` checks that these server/client pairs stay identical: `AIO.lua`, `aio_core.lua`, `aio_util.lua`, `aio_framing.lua`, `aio_reassembler.lua`, `aio_rpc.lua`, and `queue.lua`.
+On Unix with luarocks/luacheck installed:
+
+```sh
+bash scripts/ci_luacheck.sh
+```
+
+CI (see `.github/workflows/ci.yml`) runs unit tests, Luacheck via `scripts/ci_luacheck.sh` (shared modules, side modules, `AIO.lua`, and tests), and `diff` checks that these server/client pairs stay identical: `AIO.lua`, `aio_core.lua`, `aio_util.lua`, `aio_framing.lua`, `aio_reassembler.lua`, `aio_rpc.lua`, `queue.lua`, plus vendored `lualzw-zeros/lualzw.lua` and `Dep_Smallfolk/smallfolk.lua`.
 
 # About
 AIO works so that the server and client have their own lua scripts that handle sending and receiving messages from and to eachother.

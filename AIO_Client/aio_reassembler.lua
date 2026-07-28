@@ -21,6 +21,9 @@ function M.new(opts)
     local get_message_stored_size = opts["get_message_stored_size"]
     local cache_space = opts["cache_space"]
     local cache_time_ms = opts["cache_time_ms"]
+    local is_message_expired = opts["is_message_expired"] or function(stamp, now, ms)
+        return get_time_diff(now, stamp) >= ms
+    end
     local msg_id_min = opts["msg_id_min"] or 1
     local msg_id_max = opts["msg_id_max"] or 2^16 - 767
 
@@ -168,6 +171,11 @@ function M.new(opts)
         remove_data(peer_id, message_id)
     end
 
+    function reassembler.get_stored(_, peer_id)
+        local pdata = plrdata[peer_id]
+        return pdata and pdata.stored or 0
+    end
+
     function reassembler.sweep_expired(_)
         if removeque:empty() then
             return
@@ -177,7 +185,7 @@ function M.new(opts)
         for _ = l, r do
             local v = removeque:popleft()
             if v then
-                if get_time_diff(now, v.stamp) < cache_time_ms then
+                if not is_message_expired(v.stamp, now, cache_time_ms) then
                     removeque:pushleft(v)
                     break
                 end

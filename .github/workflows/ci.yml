@@ -21,26 +21,8 @@ jobs:
       - name: Run tests (Lua 5.1, full suite)
         run: lua5.1 tests/run.lua
 
-      - name: Run Luacheck on core helpers and tests
-        run: |
-          luacheck --config .luacheckrc \
-            AIO_Server/queue.lua AIO_Client/queue.lua \
-            AIO_Server/aio_util.lua AIO_Client/aio_util.lua \
-            AIO_Server/aio_framing.lua AIO_Client/aio_framing.lua \
-            AIO_Server/aio_reassembler.lua AIO_Client/aio_reassembler.lua \
-            AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua \
-            AIO_Server/aio_core.lua AIO_Client/aio_core.lua \
-            tests/run.lua tests/test_queue.lua tests/test_smallfolk.lua \
-            tests/test_framing.lua tests/test_util.lua tests/test_stored.lua \
-            tests/test_path_legacy.lua tests/test_reassembler.lua tests/test_lualzw.lua \
-            tests/test_aio_rpc.lua tests/test_aio_core.lua \
-            tests/lua_compat.lua tests/wow_stub.lua tests/aio_integration_util.lua \
-            tests/test_aio_integration_server.lua tests/test_aio_integration_client.lua
-
-      - name: Run Luacheck on WoW-only side modules
-        run: |
-          luacheck --config .luacheckrc \
-            AIO_Server/aio_server_pipeline.lua AIO_Client/aio_client_ui.lua
+      - name: Run Luacheck on core helpers, side modules, AIO.lua, and tests
+        run: bash scripts/ci_luacheck.sh
 
       - name: Verify server and client shared modules stay in sync
         run: |
@@ -51,6 +33,8 @@ jobs:
           diff -q AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua
           diff -q AIO_Server/queue.lua AIO_Client/queue.lua
           diff -q AIO_Server/aio_core.lua AIO_Client/aio_core.lua
+          diff -q AIO_Server/lualzw-zeros/lualzw.lua AIO_Client/lualzw-zeros/lualzw.lua
+          diff -q AIO_Server/Dep_Smallfolk/smallfolk.lua AIO_Client/Dep_Smallfolk/smallfolk.lua
 
   test-server-lua:
     runs-on: ubuntu-latest

@@ -1,5 +1,6 @@
 local aio_util = require("aio_util")
 
+-- Basename must match both / and \ (old pattern ([^/]*)$ left Windows paths unbroken).
 test("basename unix path", function()
     assert_eq(aio_util.basename("/server/lua_scripts/MyAddon.lua"), "MyAddon.lua")
 end)

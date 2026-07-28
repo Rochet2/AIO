@@ -1,5 +1,6 @@
 #!/usr/bin/env lua
 -- Local luacheck runner (no luarocks/lfs): uses vendored luacheck under .tmp/luacheck.
+-- Keep file list in sync with scripts/ci_luacheck.sh.
 local root = arg[0]:match("^(.*)[/\\]") or "."
 root = root .. "/../"
 package.path = root .. ".tmp/luacheck/src/?.lua;" .. package.path
@@ -67,7 +68,6 @@ local files = {
     "tests/test_framing.lua",
     "tests/test_util.lua",
     "tests/test_stored.lua",
-    "tests/test_path_legacy.lua",
     "tests/test_reassembler.lua",
     "tests/test_lualzw.lua",
     "tests/test_aio_rpc.lua",

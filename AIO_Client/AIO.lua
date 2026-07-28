@@ -376,6 +376,7 @@ local reassembler = aio_reassembler_mod.new({
     get_time = AIO_GetTime,
     get_time_diff = AIO_GetTimeDiff,
     get_message_stored_size = aio_util.getMessageStoredSize,
+    is_message_expired = aio_util.isMessageExpired,
     cache_space = AIO_SERVER and AIO_MSG_CACHE_SPACE or nil,
     cache_time_ms = AIO_MSG_CACHE_TIME,
     msg_id_min = MSG_MIN,

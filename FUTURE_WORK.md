@@ -29,15 +29,15 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 | **GitHub Releases** tied to `AIO_VERSION` | Tag `v1.76` with `CHANGELOG.md` excerpt so server owners know what changed. |
 | **PR / issue templates** | `.github/PULL_REQUEST_TEMPLATE.md` reminding contributors to sync server/client copies and run `tests/run.lua`. |
 | **Dependabot or yearly vendored audit** | Remind to bump Smallfolk, lualzw, LuaSrcDiet; record versions in `DEPENDENCIES.md`. |
-| **Optional: pre-commit hook** | Run `tests/run.lua` + `scripts/run_luacheck_local.lua` (or `luacheck` on Linux) before push. |
-| **Squash / linear history on `master`** | Many small CI-fix commits on feature branches; squash on merge for readable `master`. |
+| **Optional: pre-commit hook** | Run `tests/run.lua` + `scripts/ci_luacheck.sh` (or `scripts/run_luacheck_local.lua` on Windows) before push. |
+| **Squash / linear history on `master`** | Squash-merge PR #27 (and similar feature branches) so `master` stays readable; then tag `v1.76`. |
 | **`.github/workflows` on all branches** | CI already runs on PRs; consider `workflow_dispatch` for manual re-runs. |
 
 ## Test coverage
 
 ### Covered today (pure Lua, no WoW)
 
-- `queue`, Smallfolk, `aio_framing`, `aio_util`, `aio_reassembler`, lualzw, `aio_rpc`, `aio_core` (pcall + `HandleBlock` rules; see `tests/`).
+- `queue`, Smallfolk, `aio_framing`, `aio_util`, `aio_reassembler` (including stored-byte accounting), lualzw, `aio_rpc`, `aio_core` (pcall + `HandleBlock` rules; see `tests/`).
 - **`AIO.lua` stub harness** (`tests/wow_stub.lua`, `tests/aio_integration_util.lua`): server integration on **Lua 5.1–5.4**, client integration on **5.1 only** (`tests/lua_compat.lua`). Client harness does not replace `_G.print` on newer Lua. `aio_client_ui` is preloaded with a minimal stub until real UI load is debugged.
 
 ### Gaps (high value)
@@ -56,7 +56,7 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 
 ## Luacheck on `AIO.lua`
 
-- CI runs Luacheck on `AIO.lua` (**syntax only** for now; categories 2–6 ignored). Tighten 2.x (unused locals) incrementally once warnings are cleared locally with Lua 5.1.
+- CI runs Luacheck on `AIO.lua` via `scripts/ci_luacheck.sh` (**syntax-oriented**; categories 1–6 ignored in `.luacheckrc` for Eluna/WoW globals). Tighten unused-local and related checks incrementally once warnings are cleared locally with Lua 5.1.
 - Next: add Eluna/WoW globals and enable 3.x; then unused locals (2.x) and line length (611).
 
 ## Documentation

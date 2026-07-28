@@ -1,4 +1,3 @@
--- luacheck: ignore
 --[[
     Server-only: addon build (obfuscate/compress), init handshake, addon push to clients.
 ]]
