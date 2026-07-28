@@ -44,7 +44,7 @@ end
 
 function MyHandlers.AttributesIncrease(player, statId)
     if (player:IsInCombat()) then
-        player:SendBroadcastMessage("Du kannst während einem Kampfes keine Attributspunkte verteilen.")
+        player:SendBroadcastMessage("You can't assign attribute points during combat.")
     else
         local guid = player:GetGUIDLow()
         local spend, left = AttributesPointsSpend[guid], AttributesPointsLeft[guid]
@@ -55,7 +55,7 @@ function MyHandlers.AttributesIncrease(player, statId)
             return
         end
         if (left <= 0) then
-            player:SendBroadcastMessage("Du hast nicht genuegend Attributspunkte.")
+            player:SendBroadcastMessage("You don't have enough attribute points.")
         else
             AttributesPointsLeft[guid] = left - 1
             spend[statId] = spend[statId] + 1
@@ -72,7 +72,7 @@ end
 
 function MyHandlers.AttributesDecrease(player, statId)
     if (player:IsInCombat()) then
-        player:SendBroadcastMessage("Du kannst während einem Kampfes keine Attributspunkte verteilen.")
+        player:SendBroadcastMessage("You can't assign attribute points during combat.")
     else
         local guid = player:GetGUIDLow()
         local spend, left = AttributesPointsSpend[guid], AttributesPointsLeft[guid]
@@ -83,7 +83,7 @@ function MyHandlers.AttributesDecrease(player, statId)
             return
         end
         if (spend[statId] <= 0) then
-            player:SendBroadcastMessage("Es sind keine Punkte auf diesem Attribut verteilt.")
+            player:SendBroadcastMessage("You didn't spend any attribute points on this attribute.")
         else
             AttributesPointsLeft[guid] = left + 1
             spend[statId] = spend[statId] - 1

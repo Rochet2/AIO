@@ -1,4 +1,4 @@
-﻿## Interface: 60000
+## Interface: 60000
 ## LoadOnDemand: 1
 ## Title: Lib: Window-1.1
 ## Version: 1.1.12

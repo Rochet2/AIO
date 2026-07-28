@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Lua 5.1 and Luacheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 liblua5.1-0-dev luarocks
+          sudo luarocks --lua-version=5.1 install luacheck
+          luacheck --version
+
+      - name: Run tests (Lua 5.1, full suite)
+        run: lua5.1 tests/run.lua
+
+      - name: Run Luacheck on core helpers, side modules, AIO.lua, and tests
+        run: bash scripts/ci_luacheck.sh
+
+      - name: Verify server and client shared modules stay in sync
+        run: |
+          diff -q AIO_Server/AIO.lua AIO_Client/AIO.lua
+          diff -q AIO_Server/aio_util.lua AIO_Client/aio_util.lua
+          diff -q AIO_Server/aio_framing.lua AIO_Client/aio_framing.lua
+          diff -q AIO_Server/aio_reassembler.lua AIO_Client/aio_reassembler.lua
+          diff -q AIO_Server/aio_rpc.lua AIO_Client/aio_rpc.lua
+          diff -q AIO_Server/queue.lua AIO_Client/queue.lua
+          diff -q AIO_Server/aio_core.lua AIO_Client/aio_core.lua
+          diff -q AIO_Server/lualzw-zeros/lualzw.lua AIO_Client/lualzw-zeros/lualzw.lua
+          diff -q AIO_Server/Dep_Smallfolk/smallfolk.lua AIO_Client/Dep_Smallfolk/smallfolk.lua
+
+  test-server-lua:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ["5.2", "5.3", "5.4"]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Lua ${{ matrix.lua }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y "lua${{ matrix.lua }}"
+
+      - name: Run tests (unit + server AIO integration; client suite skipped)
+        run: lua${{ matrix.lua }} tests/run.lua
