@@ -62,4 +62,4 @@ Ideas and larger tasks that are **out of scope** for the 1.76 maintenance releas
 ## Documentation
 
 - Per-addon author guide: minimal server + client example using 1.76 module layout.
-- Troubleshooting: version mismatch, cache reset after lualzw upgrade, `.toc` order mistakes.
+- Troubleshooting: version mismatch, `.toc` order mistakes.

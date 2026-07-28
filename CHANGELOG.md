@@ -36,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Upgrade notes
 
 1. Deploy **both** `AIO_Server` and `AIO_Client` together so `AIO_VERSION` matches.
-2. After the lualzw upgrade, players with a stale client cache may need **`/aio reset`** (or your usual cache clear) if compressed addons fail to load.
+2. The lualzw v1.1.0 upgrade keeps the former `zeros` wire format (`skip = { [0] = true }`); existing client caches of compressed addons remain valid—no `/aio reset` required for compatibility.
 3. Client `.toc` load order must list the new modules before `AIO.lua` (see `DEPENDENCIES.md`).
 
 ## [1.75] and earlier
